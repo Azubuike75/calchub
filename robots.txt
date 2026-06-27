@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://universalcalchub.netlify.app/sitemap.xml
