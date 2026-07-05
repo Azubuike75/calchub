@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universal Calculator Hub - Free Calculators, Physics, Chemistry, Maths Tools</title>
+<meta name="description" content="Free online calculators for maths, physics, chemistry, health, finance and conversions. Quadratic equations, Ohm's law, molar mass, BMI, loan calculator and more. Perfect for students and professionals.">
+<meta name="keywords" content="calculator, physics calculator, chemistry calculator, maths calculator, quadratic equation, ohms law, molar mass, BMI calculator, loan calculator, ovulation calculator, period tracker, WAEC, JAMB, Nigerian students">
+<meta name="author" content="Azubuike Obiora">
+<meta name="google-site-verification" content="JoB1GbKlBgEtflJAhiwFAxU9Ot2UjBaM70i3g7nfezI" />
+<meta name="theme-color" content="#6c63ff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CalcHub">
+<link rel="manifest" href="manifest.json">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3727470847260762" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{font-family:"Segoe UI",Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;}::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-thumb{background:#6c63ff44;border-radius:3px;}</style>
+<link rel="canonical" href="https://azubuike75.github.io/calchub/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://azubuike75.github.io/calchub/">
+<meta property="og:title" content="Universal Calculator Hub - Free Maths, Physics, Chemistry & Finance Calculators">
+<meta property="og:description" content="Free calculators for WAEC, JAMB and university students. Quadratic equations, Ohm law, molar mass, BMI, loan calculator and more. Works offline.">
+<meta property="twitter:card" content="summary_large_image">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Universal Calculator Hub","description":"Free online calculators for maths, physics, chemistry, health and finance. Perfect for WAEC, JAMB and NECO students.","applicationCategory":"UtilitiesApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"author":{"@type":"Person","name":"Azubuike Christian Obiora"}}</script>
+</head>
+<body>
+<!-- Static content for Google crawler -->
+<div id="seo-content" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
+<h1>Universal Calculator Hub - Free Online Calculators for Students</h1>
+<p>Free calculators for WAEC, JAMB, NECO and university students in Nigeria and Africa. Mathematics, Physics, Chemistry, Finance and Health tools. Works offline as a PWA app.</p>
+<h2>Mathematics Calculators</h2><p>Quadratic equation solver, Pythagorean theorem, statistics (mean, median, mode, range), fraction calculator, prime number checker, LCM and HCF calculator, percentage calculator, scientific calculator.</p>
+<h2>Physics Calculators</h2><p>Ohm Law calculator (V=IR), kinetic energy (KE=half mv squared), potential energy (PE=mgh), velocity calculator, power calculator, wave speed calculator, gravitational force, pressure calculator.</p>
+<h2>Chemistry Calculators</h2><p>Molar mass calculator, molarity calculator, pH calculator, dilution calculator, ideal gas law (PV=nRT), percent composition calculator.</p>
+<h2>Financial Calculators</h2><p>Loan calculator, mortgage calculator, compound interest, salary converter, GPA calculator, discount calculator, profit and markup calculator.</p>
+<h2>Health Calculators</h2><p>BMI calculator, calorie needs calculator, water intake calculator, ovulation calculator, period tracker, ideal weight calculator, body fat calculator.</p>
+<h2>Unit Converters</h2><p>Length, weight, temperature, area, speed, currency converters.</p>
+<h2>Clocks and Timers</h2><p>World clock, stopwatch, countdown timer, digital clock.</p>
+<p>Developed by Azubuike Christian Obiora. All calculations run in your browser. No data stored.</p>
+</div>
+<div id="root"></div>
+<script type="text/babel">
+const { useState } = React;
+
+const tools = {
+  maths: [
+    { id: "quadratic", name: "Quadratic Equation", icon: "📐", desc: "Solve ax²+bx+c=0 instantly." },
+    { id: "pythagoras", name: "Pythagorean Theorem", icon: "📏", desc: "Find sides of a right triangle." },
+    { id: "statistics", name: "Statistics Calculator", icon: "📊", desc: "Mean, median, mode and range." },
+    { id: "fraction", name: "Fraction Calculator", icon: "½", desc: "Add, subtract, multiply, divide fractions." },
+    { id: "prime", name: "Prime Number Checker", icon: "🔢", desc: "Check if a number is prime." },
+    { id: "percentage", name: "Percentage Calculator", icon: "%", desc: "Calculate percentages instantly." },
+    { id: "scientific", name: "Scientific Calculator", icon: "🧮", desc: "Advanced mathematical operations." },
+    { id: "lcmhcf", name: "LCM & HCF Calculator", icon: "🔣", desc: "Find LCM and HCF of numbers." },
+  ],
+  physics: [
+    { id: "ohmslaw", name: "Ohm's Law Calculator", icon: "⚡", desc: "Calculate voltage, current and resistance." },
+    { id: "kinetic", name: "Kinetic Energy", icon: "🏃", desc: "Calculate kinetic energy of objects." },
+    { id: "potential", name: "Potential Energy", icon: "🔭", desc: "Calculate gravitational potential energy." },
+    { id: "velocity", name: "Velocity Calculator", icon: "🚀", desc: "Calculate speed, distance and time." },
+    { id: "power", name: "Power Calculator", icon: "💡", desc: "Calculate electrical or mechanical power." },
+    { id: "wave", name: "Wave Calculator", icon: "🌊", desc: "Calculate frequency, wavelength and speed." },
+    { id: "gravity", name: "Gravitational Force", icon: "🌍", desc: "Calculate force between two masses." },
+    { id: "pressure", name: "Pressure Calculator", icon: "💨", desc: "Calculate pressure, force and area." },
+  ],
+  chemistry: [
+    { id: "molarmass", name: "Molar Mass Calculator", icon: "⚗️", desc: "Calculate molar mass of compounds." },
+    { id: "molarity", name: "Molarity Calculator", icon: "🧪", desc: "Calculate solution concentration." },
+    { id: "ph", name: "pH Calculator", icon: "🔬", desc: "Calculate pH from H+ concentration." },
+    { id: "dilution", name: "Dilution Calculator", icon: "💧", desc: "Calculate dilution of solutions." },
+    { id: "ideal_gas", name: "Ideal Gas Law", icon: "🫧", desc: "PV = nRT gas calculations." },
+    { id: "percent_comp", name: "Percent Composition", icon: "🧬", desc: "Find percentage composition of elements." },
+  ],
+  calculators: [
+    { id: "age", name: "Age Calculator", icon: "🎂", desc: "Calculate exact age in years, months, days." },
+    { id: "loan", name: "Loan Calculator", icon: "🏦", desc: "Calculate monthly payments and interest." },
+    { id: "salary", name: "Salary Calculator", icon: "$", desc: "Convert between hourly and annual salary." },
+    { id: "gpa", name: "GPA Calculator", icon: "🎓", desc: "Calculate your Grade Point Average." },
+    { id: "mortgage", name: "Mortgage Calculator", icon: "🏠", desc: "Calculate monthly mortgage payments." },
+    { id: "compound", name: "Compound Interest", icon: "📈", desc: "Calculate investment growth over time." },
+    { id: "discount", name: "Discount Calculator", icon: "🏷️", desc: "Find final price after discount." },
+    { id: "profit", name: "Profit Calculator", icon: "💰", desc: "Calculate profit margin and markup." },
+    { id: "insurance", name: "Insurance Estimator", icon: "🛡️", desc: "Estimate your insurance premium." },
+    { id: "date", name: "Date Calculator", icon: "📅", desc: "Find difference between two dates." },
+  ],
+  converters: [
+    { id: "length", name: "Length Converter", icon: "📏", desc: "Convert meters, feet, inches and more." },
+    { id: "weight", name: "Weight Converter", icon: "⚖️", desc: "Convert kg, lbs, oz and more." },
+    { id: "temperature", name: "Temperature Converter", icon: "🌡️", desc: "Convert Celsius, Fahrenheit, Kelvin." },
+    { id: "area", name: "Area Converter", icon: "📐", desc: "Convert square meters, feet, acres." },
+    { id: "speed", name: "Speed Converter", icon: "🚀", desc: "Convert km/h, mph, m/s." },
+    { id: "currency", name: "Currency Converter", icon: "💱", desc: "Convert between world currencies." },
+  ],
+  health: [
+    { id: "bmi", name: "BMI Calculator", icon: "💪", desc: "Calculate your Body Mass Index." },
+    { id: "calorie", name: "Calorie Calculator", icon: "🥗", desc: "Find your daily calorie needs." },
+    { id: "water", name: "Water Intake", icon: "💧", desc: "Calculate daily water intake." },
+    { id: "ovulation", name: "Ovulation Calculator", icon: "🌸", desc: "Find your fertile window and ovulation day." },
+    { id: "menstrual", name: "Period Tracker", icon: "🌺", desc: "Predict your next 6 periods." },
+    { id: "idealweight", name: "Ideal Weight", icon: "⚕️", desc: "Find your ideal body weight range." },
+    { id: "bodyfat", name: "Body Fat Calculator", icon: "🏃", desc: "Estimate your body fat percentage." },
+    { id: "pregnancy", name: "Pregnancy Calculator", icon: "🤰", desc: "Calculate due date and pregnancy milestones." },
+  ],
+  clocks: [
+    { id: "worldclock", name: "World Clock", icon: "🌍", desc: "See time in cities worldwide." },
+    { id: "stopwatch", name: "Stopwatch", icon: "⏱️", desc: "Precision stopwatch with lap times." },
+    { id: "countdown", name: "Countdown Timer", icon: "⏳", desc: "Set a countdown to any event." },
+    { id: "clock", name: "Digital Clock", icon: "🕐", desc: "Full-screen digital clock." },
+  ],
+};
+
+const allTools = Object.values(tools).flat();
+const iStyle = {width:"100%",padding:"10px 14px",border:"1.5px solid #e8e8f0",borderRadius:10,fontSize:15,outline:"none",marginBottom:4,background:"white"};
+const btnStyle = {width:"100%",padding:"12px",background:"#6c63ff",color:"white",border:"none",borderRadius:10,fontSize:15,fontWeight:600,cursor:"pointer",marginTop:8};
+const resStyle = {marginTop:16,padding:"14px 16px",background:"#f0eeff",borderRadius:12,fontSize:15,lineHeight:1.8};
+function Field({label,children}){return <div style={{marginBottom:4}}><label style={{display:"block",fontSize:13,fontWeight:600,color:"#666",marginBottom:4,marginTop:12}}>{label}</label>{children}</div>;}
+
+// ── REUSABLE EDUCATIONAL INFO PANEL ──
+function InfoPanel({what,formula,example,faqs}){
+  const [open,setOpen]=useState(false);
+  return(
+    <div style={{marginTop:20,borderTop:"1.5px solid #e8e8f0",paddingTop:16}}>
+      <button onClick={()=>setOpen(o=>!o)} style={{background:"none",border:"1.5px solid #6c63ff",color:"#6c63ff",borderRadius:10,padding:"8px 16px",fontSize:13,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",gap:6}}>
+        📚 {open?"Hide":"Show"} Learning Guide {open?"▲":"▼"}
+      </button>
+      {open&&<div style={{marginTop:14,display:"flex",flexDirection:"column",gap:14}}>
+        {what&&<div style={{background:"#f8f8ff",borderRadius:12,padding:"14px 16px",border:"1px solid #e8e8f0"}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#6c63ff",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>📖 What is it?</div>
+          <p style={{fontSize:14,lineHeight:1.8,color:"#333"}}>{what}</p>
+        </div>}
+        {formula&&<div style={{background:"#fff8f0",borderRadius:12,padding:"14px 16px",border:"1px solid #ffe8c8"}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#f97316",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>🔢 Formula</div>
+          <p style={{fontSize:14,fontFamily:"monospace",lineHeight:1.8,color:"#333",background:"#fff",padding:"8px 12px",borderRadius:8,border:"1px solid #ffe8c8"}}>{formula}</p>
+        </div>}
+        {example&&<div style={{background:"#f0fff4",borderRadius:12,padding:"14px 16px",border:"1px solid #c8f0d8"}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#16a34a",textTransform:"uppercase",letterSpacing:1,marginBottom:6}}>✏️ Example Calculation</div>
+          <p style={{fontSize:14,lineHeight:1.8,color:"#333",whiteSpace:"pre-line"}}>{example}</p>
+        </div>}
+        {faqs&&faqs.length>0&&<div style={{background:"#f8f8ff",borderRadius:12,padding:"14px 16px",border:"1px solid #e8e8f0"}}>
+          <div style={{fontSize:12,fontWeight:800,color:"#6c63ff",textTransform:"uppercase",letterSpacing:1,marginBottom:10}}>❓ Common Questions</div>
+          {faqs.map((faq,i)=><div key={i} style={{marginBottom:10}}>
+            <div style={{fontSize:14,fontWeight:700,color:"#1a1a2e",marginBottom:3}}>Q: {faq.q}</div>
+            <div style={{fontSize:14,color:"#555",lineHeight:1.7}}>A: {faq.a}</div>
+          </div>)}
+        </div>}
+      </div>}
+    </div>
+  );
+}
+
+// MATHS
+function QuadraticCalc(){
+  const [a,setA]=useState(""); const [b,setB]=useState(""); const [c,setC]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{const av=parseFloat(a),bv=parseFloat(b),cv=parseFloat(c);const disc=bv*bv-4*av*cv;if(disc<0)setRes({type:"complex",d:disc});else if(disc===0)setRes({type:"one",x:(-bv/(2*av)).toFixed(4)});else setRes({type:"two",x1:((-bv+Math.sqrt(disc))/(2*av)).toFixed(4),x2:((-bv-Math.sqrt(disc))/(2*av)).toFixed(4)});};
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>📐 Quadratic Equation Solver</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>Solves ax² + bx + c = 0</p>
+    <Field label="a (coefficient of x²)"><input type="number" value={a} onChange={e=>setA(e.target.value)} placeholder="e.g. 1" style={iStyle}/></Field>
+
+    <Field label="b (coefficient of x)"><input type="number" value={b} onChange={e=>setB(e.target.value)} placeholder="e.g. -5" style={iStyle}/></Field>
+    <Field label="c (constant)"><input type="number" value={c} onChange={e=>setC(e.target.value)} placeholder="e.g. 6" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Solve</button>
+    {res&&<div style={resStyle}>{res.type==="two"?<span>x₁ = <strong>{res.x1}</strong> | x₂ = <strong>{res.x2}</strong></span>:res.type==="one"?<span>x = <strong>{res.x}</strong> (one solution)</span>:<span>No real solutions (discriminant = {res.d})</span>}</div>}
+    <InfoPanel
+      what="A quadratic equation is any equation in the form ax² + bx + c = 0, where a ≠ 0. It always has at most two solutions (called roots), and they can be real or complex numbers. Quadratic equations appear in physics (projectile motion), engineering, economics, and many real-world problems."
+      formula={"x = (-b ± √(b² - 4ac)) / 2a\n\nThe part under the square root (b² - 4ac) is called the discriminant (Δ):\n• Δ > 0 → two distinct real roots\n• Δ = 0 → one real root\n• Δ < 0 → no real roots (complex)"}
+      example={"Solve: x² - 5x + 6 = 0  (a=1, b=-5, c=6)\n\nΔ = (-5)² - 4(1)(6) = 25 - 24 = 1\n\nx = (5 ± √1) / 2\nx₁ = (5 + 1) / 2 = 3\nx₂ = (5 - 1) / 2 = 2\n\nAnswer: x = 3 or x = 2"}
+      faqs={[
+        {q:"What if the discriminant is negative?",a:"The equation has no real solutions. The roots are complex (imaginary) numbers. In WAEC/JAMB these are usually noted as 'no real roots'."},
+        {q:"Can a be zero?",a:"No. If a = 0, the equation becomes linear (bx + c = 0), not quadratic."},
+        {q:"Why are there sometimes two answers?",a:"Because a parabola (the graph of a quadratic) can cross the x-axis at two points, one point, or not at all."}
+      ]}
+    />
+  </div>;
+}
+
+function PythagorasCalc(){
+  const [a,setA]=useState(""); const [b,setB]=useState(""); const [hyp,setHyp]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{if(a&&b)setRes({find:"c",val:Math.sqrt(parseFloat(a)**2+parseFloat(b)**2).toFixed(4)});else if(a&&hyp)setRes({find:"b",val:Math.sqrt(parseFloat(hyp)**2-parseFloat(a)**2).toFixed(4)});else if(b&&hyp)setRes({find:"a",val:Math.sqrt(parseFloat(hyp)**2-parseFloat(b)**2).toFixed(4)});};
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>📏 Pythagorean Theorem</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>a² + b² = c² | Leave one field blank to find it</p>
+    <Field label="Side a"><input type="number" value={a} onChange={e=>setA(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Side b"><input type="number" value={b} onChange={e=>setB(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Hypotenuse c"><input type="number" value={hyp} onChange={e=>setHyp(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}>Side <strong>{res.find}</strong> = <strong>{res.val}</strong></div>}
+    <InfoPanel
+      what="The Pythagorean theorem states that in a right-angled triangle, the square of the hypotenuse equals the sum of the squares of the other two sides. It is one of the most used theorems in mathematics, physics, engineering, and construction."
+      formula={"a² + b² = c²\n\nc = hypotenuse (side opposite the right angle)\na, b = the two shorter sides (legs)"}
+      example={"Find hypotenuse when a = 3, b = 4:\n\nc² = 3² + 4² = 9 + 16 = 25\nc = √25 = 5\n\nThis is the famous 3-4-5 right triangle!"}
+      faqs={[
+        {q:"Which side is the hypotenuse?",a:"Always the longest side — the one directly opposite the 90° right angle."},
+        {q:"Does it work for any triangle?",a:"No. Only for right-angled triangles (triangles with exactly one 90° angle)."},
+        {q:"How do I find a missing leg?",a:"Rearrange: a = √(c² - b²). Enter the hypotenuse and one leg, leave the other blank."}
+      ]}
+    />
+  </div>;
+}
+
+function StatisticsCalc(){
+  const [nums,setNums]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const arr=nums.split(",").map(n=>parseFloat(n.trim())).filter(n=>!isNaN(n));
+    if(!arr.length)return;
+    const sorted=[...arr].sort((a,b)=>a-b);
+    const mean=(arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(4);
+    const mid=Math.floor(sorted.length/2);
+    const median=sorted.length%2===0?((sorted[mid-1]+sorted[mid])/2).toFixed(4):sorted[mid].toFixed(4);
+    const freq={};arr.forEach(n=>freq[n]=(freq[n]||0)+1);
+    const maxFreq=Math.max(...Object.values(freq));
+    const mode=Object.keys(freq).filter(k=>freq[k]===maxFreq).join(", ");
+    const range=(sorted[sorted.length-1]-sorted[0]).toFixed(4);
+    setRes({mean,median,mode,range,count:arr.length});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>📊 Statistics Calculator</h3>
+    <Field label="Enter numbers (comma separated)"><input type="text" value={nums} onChange={e=>setNums(e.target.value)} placeholder="e.g. 4, 7, 2, 9, 4, 1" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}>Count: <strong>{res.count}</strong><br/>Mean: <strong>{res.mean}</strong><br/>Median: <strong>{res.median}</strong><br/>Mode: <strong>{res.mode}</strong><br/>Range: <strong>{res.range}</strong></div>}
+  </div>;
+}
+
+function FractionCalc(){
+  const [n1,setN1]=useState(""); const [d1,setD1]=useState(""); const [op,setOp]=useState("+"); const [n2,setN2]=useState(""); const [d2,setD2]=useState(""); const [res,setRes]=useState(null);
+  const gcd=(a,b)=>b===0?a:gcd(b,a%b);
+  const calc=()=>{
+    const a=parseInt(n1),b=parseInt(d1),c=parseInt(n2),d=parseInt(d2);
+    let rn,rd;
+    if(op==="+"){rn=a*d+c*b;rd=b*d;}else if(op==="-"){rn=a*d-c*b;rd=b*d;}else if(op==="×"){rn=a*c;rd=b*d;}else{rn=a*d;rd=b*c;}
+    const g=gcd(Math.abs(rn),Math.abs(rd));
+    setRes({n:rn/g,d:rd/g,dec:(rn/rd).toFixed(4)});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>½ Fraction Calculator</h3>
+    <div style={{display:"flex",gap:8,alignItems:"center",marginTop:12}}>
+      <div style={{flex:1}}><Field label="Numerator 1"><input type="number" value={n1} onChange={e=>setN1(e.target.value)} style={iStyle}/></Field><Field label="Denominator 1"><input type="number" value={d1} onChange={e=>setD1(e.target.value)} style={iStyle}/></Field></div>
+      <select value={op} onChange={e=>setOp(e.target.value)} style={{...iStyle,width:60,textAlign:"center",marginTop:20}}><option>+</option><option>-</option><option>×</option><option>÷</option></select>
+      <div style={{flex:1}}><Field label="Numerator 2"><input type="number" value={n2} onChange={e=>setN2(e.target.value)} style={iStyle}/></Field><Field label="Denominator 2"><input type="number" value={d2} onChange={e=>setD2(e.target.value)} style={iStyle}/></Field></div>
+    </div>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}>Result: <strong>{res.n}/{res.d}</strong> = <strong>{res.dec}</strong></div>}
+  </div>;
+}
+
+function PrimeCalc(){
+  const [n,setN]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const num=parseInt(n);
+    if(num<2){setRes({prime:false,num});return;}
+    let prime=true;
+    for(let i=2;i<=Math.sqrt(num);i++){if(num%i===0){prime=false;break;}}
+    setRes({prime,num});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🔢 Prime Number Checker</h3>
+    <Field label="Enter a number"><input type="number" value={n} onChange={e=>setN(e.target.value)} placeholder="e.g. 17" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Check</button>
+    {res&&<div style={{...resStyle,background:res.prime?"#f0fff4":"#fff0f0"}}><strong>{res.num}</strong> is {res.prime?"✅ a PRIME number!":"❌ NOT a prime number."}</div>}
+  </div>;
+}
+
+function LCMHCFCalc(){
+  const [nums,setNums]=useState(""); const [res,setRes]=useState(null);
+  const gcd=(a,b)=>b===0?a:gcd(b,a%b);
+  const lcm=(a,b)=>a*b/gcd(a,b);
+  const calc=()=>{
+    const arr=nums.split(",").map(n=>parseInt(n.trim())).filter(n=>!isNaN(n));
+    if(arr.length<2)return;
+    const hcf=arr.reduce((a,b)=>gcd(a,b));
+    const lcmVal=arr.reduce((a,b)=>lcm(a,b));
+    setRes({hcf,lcm:lcmVal});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🔣 LCM & HCF Calculator</h3>
+    <Field label="Enter numbers (comma separated)"><input type="text" value={nums} onChange={e=>setNums(e.target.value)} placeholder="e.g. 12, 18, 24" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}>HCF (GCD): <strong>{res.hcf}</strong><br/>LCM: <strong>{res.lcm}</strong></div>}
+  </div>;
+}
+
+function ScientificCalc(){
+  const [display,setDisplay]=useState("0"); const [expr,setExpr]=useState("");
+  const press=(val)=>{
+    try{
+      if(val==="="){const result=eval(expr.replace(/×/g,"*").replace(/÷/g,"/").replace(/π/g,Math.PI).replace(/√\(/g,"Math.sqrt(").replace(/sin\(/g,"Math.sin(").replace(/cos\(/g,"Math.cos(").replace(/tan\(/g,"Math.tan(").replace(/log\(/g,"Math.log10(").replace(/ln\(/g,"Math.log("));setDisplay(String(parseFloat(result.toFixed(8))));setExpr("");}
+      else if(val==="C"){setDisplay("0");setExpr("");}
+      else if(val==="⌫"){setExpr(e=>e.slice(0,-1))||setDisplay("0");}
+      else{setExpr(e=>e+val);setDisplay(expr+val);}
+    }catch{setDisplay("Error");setExpr("");}
+  };
+  const btns=[["C","⌫","(",")"],["sin(","cos(","tan(","√("],["7","8","9","÷"],["4","5","6","×"],["1","2","3","-"],["π","0",".","+"],["%","^","ln(","="]];
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🧮 Scientific Calculator</h3>
+    <div style={{background:"#1a1a2e",borderRadius:12,padding:"12px 16px",marginBottom:12,textAlign:"right"}}>
+      <div style={{color:"#888",fontSize:13,minHeight:20}}>{expr}</div>
+      <div style={{color:"white",fontSize:28,fontWeight:700,fontVariantNumeric:"tabular-nums"}}>{display}</div>
+    </div>
+    {btns.map((row,i)=><div key={i} style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:6,marginBottom:6}}>
+      {row.map(b=><button key={b} onClick={()=>press(b)} style={{padding:"14px 0",background:b==="="?"#6c63ff":b==="C"?"#e74c3c":["⌫","(",")"].includes(b)?"#444":"#2a2a40",color:"white",border:"none",borderRadius:8,fontSize:b.length>2?12:16,fontWeight:600,cursor:"pointer"}}>{b}</button>)}
+    </div>)}
+  </div>;
+}
+
+// PHYSICS
+function OhmsLawCalc(){
+  const [v,setV]=useState(""); const [i,setI]=useState(""); const [r,setR]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const vv=parseFloat(v),iv=parseFloat(i),rv=parseFloat(r);
+    if(v&&i)setRes({find:"R",val:(vv/iv).toFixed(4),unit:"Ω"});
+    else if(v&&r)setRes({find:"I",val:(vv/rv).toFixed(4),unit:"A"});
+    else if(i&&r)setRes({find:"V",val:(iv*rv).toFixed(4),unit:"V"});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>⚡ Ohm's Law Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>V = IR | Leave one blank to find it</p>
+    <Field label="Voltage V (volts)"><input type="number" value={v} onChange={e=>setV(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Current I (amperes)"><input type="number" value={i} onChange={e=>setI(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Resistance R (ohms)"><input type="number" value={r} onChange={e=>setR(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}><strong>{res.find}</strong> = <strong>{res.val} {res.unit}</strong></div>}
+    <InfoPanel
+      what="Ohm's Law describes the relationship between voltage (V), current (I), and resistance (R) in an electrical circuit. It is the most fundamental law in electronics and electrical engineering, used to design everything from phone chargers to power grids."
+      formula={"V = I × R\n\nV = Voltage (Volts, V)\nI = Current (Amperes, A)\nR = Resistance (Ohms, Ω)\n\nRearranged:\nI = V / R\nR = V / I"}
+      example={"Find resistance when V = 12V, I = 2A:\n\nR = V / I = 12 / 2 = 6 Ω\n\nFind current when V = 9V, R = 3Ω:\nI = V / R = 9 / 3 = 3 A"}
+      faqs={[
+        {q:"What is a volt?",a:"A volt is the unit of electrical pressure (potential difference). It drives the flow of electric current through a circuit, like water pressure drives water through a pipe."},
+        {q:"What is resistance?",a:"Resistance is how much a material opposes the flow of electric current. Metals like copper have low resistance (good conductors); rubber has high resistance (good insulator)."},
+        {q:"Does Ohm's Law always apply?",a:"Ohm's Law applies to linear (ohmic) components like resistors. It does not perfectly describe non-linear components like diodes, transistors, or filament bulbs at high temperatures."}
+      ]}
+    />
+  </div>;
+}
+
+function KineticCalc(){
+  const [m,setM]=useState(""); const [v,setV]=useState(""); const [res,setRes]=useState(null);
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🏃 Kinetic Energy Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>KE = ½mv²</p>
+    <Field label="Mass (kg)"><input type="number" value={m} onChange={e=>setM(e.target.value)} placeholder="e.g. 10" style={iStyle}/></Field>
+    <Field label="Velocity (m/s)"><input type="number" value={v} onChange={e=>setV(e.target.value)} placeholder="e.g. 5" style={iStyle}/></Field>
+    <button onClick={()=>setRes((0.5*parseFloat(m)*parseFloat(v)**2).toFixed(4))} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}>Kinetic Energy = <strong>{res} Joules</strong></div>}
+  </div>;
+}
+
+function PotentialCalc(){
+  const [m,setM]=useState(""); const [h,setH]=useState(""); const [res,setRes]=useState(null);
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🔭 Potential Energy Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>PE = mgh (g = 9.81 m/s²)</p>
+    <Field label="Mass (kg)"><input type="number" value={m} onChange={e=>setM(e.target.value)} placeholder="e.g. 10" style={iStyle}/></Field>
+    <Field label="Height (m)"><input type="number" value={h} onChange={e=>setH(e.target.value)} placeholder="e.g. 5" style={iStyle}/></Field>
+    <button onClick={()=>setRes((parseFloat(m)*9.81*parseFloat(h)).toFixed(4))} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}>Potential Energy = <strong>{res} Joules</strong></div>}
+  </div>;
+}
+
+function VelocityCalc(){
+  const [d,setD]=useState(""); const [t,setT]=useState(""); const [v,setV]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const dv=parseFloat(d),tv=parseFloat(t),vv=parseFloat(v);
+    if(d&&t)setRes({find:"Velocity",val:(dv/tv).toFixed(4),unit:"m/s"});
+    else if(v&&t)setRes({find:"Distance",val:(vv*tv).toFixed(4),unit:"m"});
+    else if(d&&v)setRes({find:"Time",val:(dv/vv).toFixed(4),unit:"s"});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🚀 Velocity Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>v = d/t | Leave one blank to find it</p>
+    <Field label="Distance (m)"><input type="number" value={d} onChange={e=>setD(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Time (s)"><input type="number" value={t} onChange={e=>setT(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Velocity (m/s)"><input type="number" value={v} onChange={e=>setV(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}><strong>{res.find}</strong> = <strong>{res.val} {res.unit}</strong></div>}
+  </div>;
+}
+
+function PowerCalc(){
+  const [w,setW]=useState(""); const [v,setV]=useState(""); const [i,setI]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const wv=parseFloat(w),vv=parseFloat(v),iv=parseFloat(i);
+    if(v&&i)setRes({find:"Power",val:(vv*iv).toFixed(4),unit:"W"});
+    else if(w&&v)setRes({find:"Current",val:(wv/vv).toFixed(4),unit:"A"});
+    else if(w&&i)setRes({find:"Voltage",val:(wv/iv).toFixed(4),unit:"V"});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>💡 Power Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>P = VI | Leave one blank to find it</p>
+    <Field label="Power P (watts)"><input type="number" value={w} onChange={e=>setW(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Voltage V (volts)"><input type="number" value={v} onChange={e=>setV(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Current I (amperes)"><input type="number" value={i} onChange={e=>setI(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}><strong>{res.find}</strong> = <strong>{res.val} {res.unit}</strong></div>}
+  </div>;
+}
+
+function WaveCalc(){
+  const [f,setF]=useState(""); const [wl,setWl]=useState(""); const [spd,setSpd]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const fv=parseFloat(f),wlv=parseFloat(wl),sv=parseFloat(spd);
+    if(f&&wl)setRes({find:"Wave Speed",val:(fv*wlv).toFixed(4),unit:"m/s"});
+    else if(spd&&wl)setRes({find:"Frequency",val:(sv/wlv).toFixed(4),unit:"Hz"});
+    else if(spd&&f)setRes({find:"Wavelength",val:(sv/fv).toFixed(4),unit:"m"});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🌊 Wave Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>v = fλ | Leave one blank to find it</p>
+    <Field label="Frequency f (Hz)"><input type="number" value={f} onChange={e=>setF(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Wavelength λ (m)"><input type="number" value={wl} onChange={e=>setWl(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Wave Speed v (m/s)"><input type="number" value={spd} onChange={e=>setSpd(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}><strong>{res.find}</strong> = <strong>{res.val} {res.unit}</strong></div>}
+  </div>;
+}
+
+function GravityCalc(){
+  const [m1,setM1]=useState(""); const [m2,setM2]=useState(""); const [r,setR]=useState(""); const [res,setRes]=useState(null);
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🌍 Gravitational Force</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>F = Gm₁m₂/r² (G = 6.674×10⁻¹¹)</p>
+    <Field label="Mass 1 (kg)"><input type="number" value={m1} onChange={e=>setM1(e.target.value)} placeholder="e.g. 5.972e24" style={iStyle}/></Field>
+    <Field label="Mass 2 (kg)"><input type="number" value={m2} onChange={e=>setM2(e.target.value)} placeholder="e.g. 70" style={iStyle}/></Field>
+    <Field label="Distance r (m)"><input type="number" value={r} onChange={e=>setR(e.target.value)} placeholder="e.g. 6.371e6" style={iStyle}/></Field>
+    <button onClick={()=>setRes((6.674e-11*parseFloat(m1)*parseFloat(m2)/(parseFloat(r)**2)).toExponential(4))} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}>Gravitational Force = <strong>{res} N</strong></div>}
+  </div>;
+}
+
+function PressureCalc(){
+  const [f,setF]=useState(""); const [a,setA]=useState(""); const [p,setP]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const fv=parseFloat(f),av=parseFloat(a),pv=parseFloat(p);
+    if(f&&a)setRes({find:"Pressure",val:(fv/av).toFixed(4),unit:"Pa"});
+    else if(p&&a)setRes({find:"Force",val:(pv*av).toFixed(4),unit:"N"});
+    else if(f&&p)setRes({find:"Area",val:(fv/pv).toFixed(4),unit:"m²"});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>💨 Pressure Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>P = F/A | Leave one blank to find it</p>
+    <Field label="Force F (Newtons)"><input type="number" value={f} onChange={e=>setF(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Area A (m²)"><input type="number" value={a} onChange={e=>setA(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Pressure P (Pascals)"><input type="number" value={p} onChange={e=>setP(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}><strong>{res.find}</strong> = <strong>{res.val} {res.unit}</strong></div>}
+  </div>;
+}
+
+// CHEMISTRY
+function MolarMassCalc(){
+  const elements={"H":1.008,"He":4.003,"Li":6.941,"Be":9.012,"B":10.811,"C":12.011,"N":14.007,"O":15.999,"F":18.998,"Ne":20.180,"Na":22.990,"Mg":24.305,"Al":26.982,"Si":28.086,"P":30.974,"S":32.065,"Cl":35.453,"Ar":39.948,"K":39.098,"Ca":40.078,"Fe":55.845,"Cu":63.546,"Zn":65.38,"Br":79.904,"Ag":107.868,"I":126.904,"Au":196.967,"Pb":207.2};
+  const [formula,setFormula]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    let mass=0; let valid=true;
+    const regex=/([A-Z][a-z]?)(\d*)/g; let match;
+    while((match=regex.exec(formula))!==null){
+      const el=match[1]; const count=parseInt(match[2])||1;
+      if(elements[el]){mass+=elements[el]*count;}else{valid=false;break;}
+    }
+    setRes(valid?{mass:mass.toFixed(4)}:{error:true});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>⚗️ Molar Mass Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>Enter chemical formula e.g. H2O, NaCl, C6H12O6</p>
+    <Field label="Chemical Formula"><input type="text" value={formula} onChange={e=>setFormula(e.target.value)} placeholder="e.g. H2O" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}>{res.error?"Invalid formula — check element symbols":"Molar Mass = "}<strong>{res.error?"":res.mass+" g/mol"}</strong></div>}
+  </div>;
+}
+
+function MolarityCalc(){
+  const [moles,setMoles]=useState(""); const [vol,setVol]=useState(""); const [mol,setMol]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const mv=parseFloat(moles),vv=parseFloat(vol),molv=parseFloat(mol);
+    if(moles&&vol)setRes({find:"Molarity",val:(mv/vv).toFixed(4),unit:"mol/L"});
+    else if(mol&&vol)setRes({find:"Moles",val:(molv*vv).toFixed(4),unit:"mol"});
+    else if(moles&&mol)setRes({find:"Volume",val:(mv/molv).toFixed(4),unit:"L"});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🧪 Molarity Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>M = n/V | Leave one blank to find it</p>
+    <Field label="Moles of solute (mol)"><input type="number" value={moles} onChange={e=>setMoles(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Volume of solution (L)"><input type="number" value={vol} onChange={e=>setVol(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Molarity M (mol/L)"><input type="number" value={mol} onChange={e=>setMol(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}><strong>{res.find}</strong> = <strong>{res.val} {res.unit}</strong></div>}
+  </div>;
+}
+
+function PHCalc(){
+  const [h,setH]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const ph=-Math.log10(parseFloat(h));
+    const nature=ph<7?"Acidic":ph===7?"Neutral":"Basic/Alkaline";
+    setRes({ph:ph.toFixed(4),nature});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🔬 pH Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>pH = -log[H⁺]</p>
+    <Field label="H⁺ concentration (mol/L)"><input type="number" value={h} onChange={e=>setH(e.target.value)} placeholder="e.g. 0.001" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate pH</button>
+    {res&&<div style={{...resStyle,background:parseFloat(res.ph)<7?"#fff0f0":parseFloat(res.ph)===7?"#f0fff4":"#f0f0ff"}}>pH = <strong>{res.ph}</strong> — <strong>{res.nature}</strong></div>}
+  </div>;
+}
+
+function DilutionCalc(){
+  const [c1,setC1]=useState(""); const [v1,setV1]=useState(""); const [c2,setC2]=useState(""); const [v2,setV2]=useState(""); const [res,setRes]=useState(null);
+  const calc=()=>{
+    const c1v=parseFloat(c1),v1v=parseFloat(v1),c2v=parseFloat(c2),v2v=parseFloat(v2);
+    if(c1&&v1&&c2)setRes({find:"V2",val:(c1v*v1v/c2v).toFixed(4),unit:"L"});
+    else if(c1&&v1&&v2)setRes({find:"C2",val:(c1v*v1v/v2v).toFixed(4),unit:"mol/L"});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>💧 Dilution Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>C₁V₁ = C₂V₂</p>
+    <Field label="Initial Concentration C1 (mol/L)"><input type="number" value={c1} onChange={e=>setC1(e.target.value)} placeholder="e.g. 2" style={iStyle}/></Field>
+    <Field label="Initial Volume V1 (L)"><input type="number" value={v1} onChange={e=>setV1(e.target.value)} placeholder="e.g. 0.5" style={iStyle}/></Field>
+    <Field label="Final Concentration C2 (mol/L)"><input type="number" value={c2} onChange={e=>setC2(e.target.value)} placeholder="Leave blank to find V2" style={iStyle}/></Field>
+    <Field label="Final Volume V2 (L)"><input type="number" value={v2} onChange={e=>setV2(e.target.value)} placeholder="Leave blank to find C2" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}><strong>{res.find}</strong> = <strong>{res.val} {res.unit}</strong></div>}
+  </div>;
+}
+
+function IdealGasCalc(){
+  const [p,setP]=useState(""); const [v,setV]=useState(""); const [n,setN]=useState(""); const [t,setT]=useState(""); const [res,setRes]=useState(null);
+  const R=8.314;
+  const calc=()=>{
+    const pv=parseFloat(p),vv=parseFloat(v),nv=parseFloat(n),tv=parseFloat(t);
+    if(v&&n&&t)setRes({find:"Pressure",val:(nv*R*tv/vv).toFixed(4),unit:"Pa"});
+    else if(p&&n&&t)setRes({find:"Volume",val:(nv*R*tv/pv).toFixed(4),unit:"m³"});
+    else if(p&&v&&t)setRes({find:"Moles",val:(pv*vv/(R*tv)).toFixed(4),unit:"mol"});
+    else if(p&&v&&n)setRes({find:"Temperature",val:(pv*vv/(nv*R)).toFixed(4),unit:"K"});
+  };
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🫧 Ideal Gas Law</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>PV = nRT (R = 8.314 J/mol·K) | Leave one blank</p>
+    <Field label="Pressure P (Pa)"><input type="number" value={p} onChange={e=>setP(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Volume V (m³)"><input type="number" value={v} onChange={e=>setV(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Moles n (mol)"><input type="number" value={n} onChange={e=>setN(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <Field label="Temperature T (K)"><input type="number" value={t} onChange={e=>setT(e.target.value)} placeholder="Leave blank to find" style={iStyle}/></Field>
+    <button onClick={calc} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}><strong>{res.find}</strong> = <strong>{res.val} {res.unit}</strong></div>}
+  </div>;
+}
+
+function PercentCompCalc(){
+  const [el,setEl]=useState(""); const [total,setTotal]=useState(""); const [res,setRes]=useState(null);
+  return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🧬 Percent Composition</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>% = (mass of element / molar mass) × 100</p>
+    <Field label="Mass of Element (g/mol)"><input type="number" value={el} onChange={e=>setEl(e.target.value)} placeholder="e.g. 32 for S in H2SO4" style={iStyle}/></Field>
+    <Field label="Total Molar Mass (g/mol)"><input type="number" value={total} onChange={e=>setTotal(e.target.value)} placeholder="e.g. 98 for H2SO4" style={iStyle}/></Field>
+    <button onClick={()=>setRes((parseFloat(el)/parseFloat(total)*100).toFixed(4))} style={btnStyle}>Calculate</button>
+    {res&&<div style={resStyle}>Percent Composition = <strong>{res}%</strong></div>}
+  </div>;
+}
+
+// EXISTING CALCULATORS
+function PercentageCalc(){const [val,setVal]=useState("");const [pct,setPct]=useState("");const [res,setRes]=useState(null);return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>% Percentage Calculator</h3><Field label="Value"><input type="number" value={val} onChange={e=>setVal(e.target.value)} placeholder="e.g. 200" style={iStyle}/></Field><Field label="Percentage (%)"><input type="number" value={pct} onChange={e=>setPct(e.target.value)} placeholder="e.g. 15" style={iStyle}/></Field><button onClick={()=>setRes(((parseFloat(val)*parseFloat(pct))/100).toFixed(2))} style={btnStyle}>Calculate</button>{res!==null&&<div style={resStyle}>{pct}% of {val} = <strong>{res}</strong></div>}</div>;}
+function AgeCalc(){const [dob,setDob]=useState("");const [res,setRes]=useState(null);const calc=()=>{const birth=new Date(dob);const today=new Date();let y=today.getFullYear()-birth.getFullYear();let m=today.getMonth()-birth.getMonth();let d=today.getDate()-birth.getDate();if(d<0){m--;d+=new Date(today.getFullYear(),today.getMonth(),0).getDate();}if(m<0){y--;m+=12;}setRes({y,m,d});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🎂 Age Calculator</h3><Field label="Date of Birth"><input type="date" value={dob} onChange={e=>setDob(e.target.value)} style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate Age</button>{res&&<div style={resStyle}><strong>{res.y}</strong> years, <strong>{res.m}</strong> months, <strong>{res.d}</strong> days</div>}</div>;}
+function LoanCalc(){const [p,setP]=useState("");const [r,setR]=useState("");const [y,setY]=useState("");const [res,setRes]=useState(null);const calc=()=>{const pr=parseFloat(p),rate=parseFloat(r)/100/12,n=parseFloat(y)*12;const m=(pr*rate*Math.pow(1+rate,n))/(Math.pow(1+rate,n)-1);setRes({m:m.toFixed(2),t:(m*n).toFixed(2),i:(m*n-pr).toFixed(2)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🏦 Loan Calculator</h3><Field label="Loan Amount ($)"><input type="number" value={p} onChange={e=>setP(e.target.value)} placeholder="e.g. 10000" style={iStyle}/></Field><Field label="Annual Rate (%)"><input type="number" value={r} onChange={e=>setR(e.target.value)} placeholder="e.g. 5" style={iStyle}/></Field><Field label="Term (years)"><input type="number" value={y} onChange={e=>setY(e.target.value)} placeholder="e.g. 5" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>Monthly: <strong>${res.m}</strong> | Total: <strong>${res.t}</strong> | Interest: <strong>${res.i}</strong></div>}<InfoPanel what="A loan calculator helps you understand how much you will pay each month and in total when you borrow money. Banks and lenders charge interest — a percentage of the loan — for letting you use their money. The monthly payment formula is called the EMI (Equated Monthly Instalment) formula." formula={"M = P × [r(1+r)ⁿ] / [(1+r)ⁿ - 1]\n\nM = monthly payment\nP = principal (loan amount)\nr = monthly interest rate (annual rate ÷ 12)\nn = total number of payments (years × 12)"} example={"Loan: $10,000 | Rate: 12% p.a. | Term: 2 years\n\nr = 12% / 12 = 1% = 0.01\nn = 2 × 12 = 24 months\n\nM = 10000 × [0.01(1.01)²⁴] / [(1.01)²⁴ - 1]\nM ≈ $470.73/month\n\nTotal paid: $11,297.52\nTotal interest: $1,297.52"} faqs={[{q:"What is a good interest rate for a loan?",a:"It depends on your country and bank. In Nigeria, personal loan rates range from 18–30% per year. Lower is better for the borrower."},{q:"Does a longer term mean smaller payments?",a:"Yes, but you end up paying more total interest. A 5-year loan has smaller monthly payments than a 2-year loan, but costs more overall."},{q:"What is the difference between simple and compound interest?",a:"Simple interest is calculated only on the principal. Compound interest is calculated on the principal plus accumulated interest. Most loans use compound interest."}]}/></div>;}
+function BMICalc(){const [w,setW]=useState("");const [h,setH]=useState("");const [res,setRes]=useState(null);const calc=()=>{const bmi=(parseFloat(w)/Math.pow(parseFloat(h)/100,2)).toFixed(1);const cat=bmi<18.5?"Underweight":bmi<25?"Normal weight":bmi<30?"Overweight":"Obese";setRes({bmi,cat});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>💪 BMI Calculator</h3><Field label="Weight (kg)"><input type="number" value={w} onChange={e=>setW(e.target.value)} placeholder="e.g. 70" style={iStyle}/></Field><Field label="Height (cm)"><input type="number" value={h} onChange={e=>setH(e.target.value)} placeholder="e.g. 175" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate BMI</button>{res&&<div style={resStyle}>BMI: <strong>{res.bmi}</strong> — {res.cat}</div>}<InfoPanel what="Body Mass Index (BMI) is a simple number calculated from your weight and height. It gives a general indication of whether you are underweight, healthy weight, overweight, or obese. It is widely used by health professionals as a quick screening tool, though it does not measure body fat directly." formula={"BMI = weight (kg) / height² (m)\n\nCategories:\n• Below 18.5 → Underweight\n• 18.5 – 24.9 → Normal weight\n• 25.0 – 29.9 → Overweight\n• 30.0 and above → Obese"} example={"Weight: 70 kg | Height: 175 cm (1.75 m)\n\nBMI = 70 / (1.75)²\nBMI = 70 / 3.0625\nBMI = 22.9 → Normal weight ✅"} faqs={[{q:"Is BMI accurate for everyone?",a:"BMI is a general guide. It may overestimate body fat in muscular people (like athletes) and underestimate it in older adults who have lost muscle. Always consult a doctor for a full health assessment."},{q:"What BMI is considered healthy?",a:"A BMI between 18.5 and 24.9 is considered normal/healthy for most adults. However, healthy ranges can vary by ethnicity — Asian populations may have higher health risks at lower BMI values."},{q:"Does BMI account for muscle mass?",a:"No. BMI only uses weight and height, so a very muscular person may have a high BMI while being perfectly healthy. Body fat percentage is a more accurate measure."}]}/></div>;}
+function TempCalc(){const [val,setVal]=useState("");const [from,setFrom]=useState("C");const [res,setRes]=useState(null);const calc=()=>{const v=parseFloat(val);let c,f,k;if(from==="C"){c=v;f=v*9/5+32;k=v+273.15;}else if(from==="F"){c=(v-32)*5/9;f=v;k=(v-32)*5/9+273.15;}else{c=v-273.15;f=(v-273.15)*9/5+32;k=v;}setRes({c:c.toFixed(2),f:f.toFixed(2),k:k.toFixed(2)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🌡️ Temperature Converter</h3><Field label="Value"><input type="number" value={val} onChange={e=>setVal(e.target.value)} placeholder="Enter temperature" style={iStyle}/></Field><Field label="From"><select value={from} onChange={e=>setFrom(e.target.value)} style={iStyle}><option value="C">Celsius</option><option value="F">Fahrenheit</option><option value="K">Kelvin</option></select></Field><button onClick={calc} style={btnStyle}>Convert</button>{res&&<div style={resStyle}>°C: <strong>{res.c}</strong> | °F: <strong>{res.f}</strong> | K: <strong>{res.k}</strong></div>}</div>;}
+function WeightCalc(){const [val,setVal]=useState("");const [from,setFrom]=useState("kg");const [res,setRes]=useState(null);const toKg={kg:1,lb:0.453592,g:0.001,oz:0.0283495};const calc=()=>{const kg=parseFloat(val)*toKg[from];setRes({kg:kg.toFixed(3),lb:(kg/toKg.lb).toFixed(3),g:(kg/toKg.g).toFixed(1),oz:(kg/toKg.oz).toFixed(2)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>⚖️ Weight Converter</h3><Field label="Value"><input type="number" value={val} onChange={e=>setVal(e.target.value)} placeholder="Enter weight" style={iStyle}/></Field><Field label="From"><select value={from} onChange={e=>setFrom(e.target.value)} style={iStyle}><option value="kg">kg</option><option value="lb">lb</option><option value="g">g</option><option value="oz">oz</option></select></Field><button onClick={calc} style={btnStyle}>Convert</button>{res&&<div style={resStyle}>kg: <strong>{res.kg}</strong> | lb: <strong>{res.lb}</strong> | g: <strong>{res.g}</strong> | oz: <strong>{res.oz}</strong></div>}</div>;}
+function LengthCalc(){const [val,setVal]=useState("");const [from,setFrom]=useState("m");const [res,setRes]=useState(null);const toM={m:1,km:1000,cm:0.01,mm:0.001,ft:0.3048,in:0.0254,mi:1609.34};const calc=()=>{const meters=parseFloat(val)*toM[from];setRes({m:meters.toFixed(4),km:(meters/toM.km).toFixed(6),ft:(meters/toM.ft).toFixed(3),in:(meters/toM.in).toFixed(2),mi:(meters/toM.mi).toFixed(6)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>📏 Length Converter</h3><Field label="Value"><input type="number" value={val} onChange={e=>setVal(e.target.value)} placeholder="Enter length" style={iStyle}/></Field><Field label="From"><select value={from} onChange={e=>setFrom(e.target.value)} style={iStyle}>{Object.keys(toM).map(u=><option key={u} value={u}>{u}</option>)}</select></Field><button onClick={calc} style={btnStyle}>Convert</button>{res&&<div style={resStyle}>m: <strong>{res.m}</strong> | km: <strong>{res.km}</strong> | ft: <strong>{res.ft}</strong> | in: <strong>{res.in}</strong></div>}</div>;}
+function SalaryCalc(){const [amt,setAmt]=useState("");const [type,setType]=useState("annual");const [res,setRes]=useState(null);const calc=()=>{const v=parseFloat(amt);let a=type==="annual"?v:type==="monthly"?v*12:type==="daily"?v*260:v*2080;setRes({a:a.toFixed(2),m:(a/12).toFixed(2),d:(a/260).toFixed(2),h:(a/2080).toFixed(2)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>$ Salary Calculator</h3><Field label="Amount ($)"><input type="number" value={amt} onChange={e=>setAmt(e.target.value)} placeholder="Enter amount" style={iStyle}/></Field><Field label="Pay Period"><select value={type} onChange={e=>setType(e.target.value)} style={iStyle}><option value="annual">Annual</option><option value="monthly">Monthly</option><option value="daily">Daily</option><option value="hourly">Hourly</option></select></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>Annual: <strong>${res.a}</strong> | Monthly: <strong>${res.m}</strong> | Daily: <strong>${res.d}</strong> | Hourly: <strong>${res.h}</strong></div>}</div>;}
+function GPACalc(){const [courses,setCourses]=useState([{grade:"",credits:""}]);const [res,setRes]=useState(null);const gm={"A+":4,"A":4,"A-":3.7,"B+":3.3,"B":3,"B-":2.7,"C+":2.3,"C":2,"C-":1.7,"D":1,"F":0};const calc=()=>{let tp=0,tc=0;courses.forEach(c=>{const pts=gm[c.grade];const cr=parseFloat(c.credits);if(pts!==undefined&&cr){tp+=pts*cr;tc+=cr;}});setRes(tc?(tp/tc).toFixed(2):null);};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🎓 GPA Calculator</h3>{courses.map((c,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:8}}><select value={c.grade} onChange={e=>{const n=[...courses];n[i].grade=e.target.value;setCourses(n);}} style={{...iStyle,flex:1}}><option value="">Grade</option>{Object.keys(gm).map(g=><option key={g} value={g}>{g}</option>)}</select><input type="number" placeholder="Credits" value={c.credits} onChange={e=>{const n=[...courses];n[i].credits=e.target.value;setCourses(n);}} style={{...iStyle,flex:1}}/></div>)}<button onClick={()=>setCourses([...courses,{grade:"",credits:""}])} style={{...btnStyle,background:"#e8e8f0",color:"#333",marginBottom:8}}>+ Add Course</button><button onClick={calc} style={btnStyle}>Calculate GPA</button>{res&&<div style={resStyle}>Your GPA: <strong>{res}</strong></div>}</div>;}
+function DiscountCalc(){const [price,setPrice]=useState("");const [disc,setDisc]=useState("");const [res,setRes]=useState(null);const calc=()=>{const p=parseFloat(price),d=parseFloat(disc);setRes({saved:(p*d/100).toFixed(2),final:(p-p*d/100).toFixed(2)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🏷️ Discount Calculator</h3><Field label="Original Price ($)"><input type="number" value={price} onChange={e=>setPrice(e.target.value)} placeholder="e.g. 100" style={iStyle}/></Field><Field label="Discount (%)"><input type="number" value={disc} onChange={e=>setDisc(e.target.value)} placeholder="e.g. 20" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>You save: <strong>${res.saved}</strong> | Final: <strong>${res.final}</strong></div>}</div>;}
+function CompoundCalc(){const [p,setP]=useState("");const [r,setR]=useState("");const [t,setT]=useState("");const [res,setRes]=useState(null);const calc=()=>{const principal=parseFloat(p),rate=parseFloat(r)/100,time=parseFloat(t);const amt=(principal*Math.pow(1+rate,time)).toFixed(2);setRes({amt,int:(amt-principal).toFixed(2)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>📈 Compound Interest</h3><Field label="Principal ($)"><input type="number" value={p} onChange={e=>setP(e.target.value)} placeholder="e.g. 1000" style={iStyle}/></Field><Field label="Annual Rate (%)"><input type="number" value={r} onChange={e=>setR(e.target.value)} placeholder="e.g. 8" style={iStyle}/></Field><Field label="Years"><input type="number" value={t} onChange={e=>setT(e.target.value)} placeholder="e.g. 10" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>Total: <strong>${res.amt}</strong> | Interest: <strong>${res.int}</strong></div>}</div>;}
+function MortgageCalc(){const [home,setHome]=useState("");const [down,setDown]=useState("");const [r,setR]=useState("");const [y,setY]=useState("");const [res,setRes]=useState(null);const calc=()=>{const p=parseFloat(home)-parseFloat(down),rate=parseFloat(r)/100/12,n=parseFloat(y)*12;const m=(p*rate*Math.pow(1+rate,n))/(Math.pow(1+rate,n)-1);setRes({m:m.toFixed(2),t:(m*n).toFixed(2),i:(m*n-p).toFixed(2)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🏠 Mortgage Calculator</h3><Field label="Home Price ($)"><input type="number" value={home} onChange={e=>setHome(e.target.value)} placeholder="e.g. 300000" style={iStyle}/></Field><Field label="Down Payment ($)"><input type="number" value={down} onChange={e=>setDown(e.target.value)} placeholder="e.g. 60000" style={iStyle}/></Field><Field label="Annual Rate (%)"><input type="number" value={r} onChange={e=>setR(e.target.value)} placeholder="e.g. 6.5" style={iStyle}/></Field><Field label="Term (years)"><input type="number" value={y} onChange={e=>setY(e.target.value)} placeholder="e.g. 30" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>Monthly: <strong>${res.m}</strong> | Total: <strong>${res.t}</strong> | Interest: <strong>${res.i}</strong></div>}</div>;}
+function ProfitCalc(){const [cost,setCost]=useState("");const [rev,setRev]=useState("");const [res,setRes]=useState(null);const calc=()=>{const c=parseFloat(cost),r=parseFloat(rev);const profit=r-c;const margin=((profit/r)*100).toFixed(2);const markup=((profit/c)*100).toFixed(2);setRes({profit:profit.toFixed(2),margin,markup});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>💰 Profit Calculator</h3><Field label="Cost Price ($)"><input type="number" value={cost} onChange={e=>setCost(e.target.value)} placeholder="e.g. 50" style={iStyle}/></Field><Field label="Selling Price ($)"><input type="number" value={rev} onChange={e=>setRev(e.target.value)} placeholder="e.g. 80" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>Profit: <strong>${res.profit}</strong> | Margin: <strong>{res.margin}%</strong> | Markup: <strong>{res.markup}%</strong></div>}</div>;}
+function InsuranceCalc(){const [age,setAge]=useState("");const [cov,setCov]=useState("");const [type,setType]=useState("life");const [sm,setSm]=useState("no");const [res,setRes]=useState(null);const calc=()=>{const a=parseInt(age),c=parseFloat(cov);let r=type==="life"?0.003:type==="health"?0.05:0.008;if(a>40)r*=1.5;if(a>55)r*=2.5;if(sm==="yes")r*=2;setRes({m:(c*r/12).toFixed(2),a:(c*r).toFixed(2)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🛡️ Insurance Estimator</h3><Field label="Age"><input type="number" value={age} onChange={e=>setAge(e.target.value)} placeholder="e.g. 35" style={iStyle}/></Field><Field label="Coverage ($)"><input type="number" value={cov} onChange={e=>setCov(e.target.value)} placeholder="e.g. 100000" style={iStyle}/></Field><Field label="Type"><select value={type} onChange={e=>setType(e.target.value)} style={iStyle}><option value="life">Life</option><option value="health">Health</option><option value="auto">Auto</option></select></Field><Field label="Smoker?"><select value={sm} onChange={e=>setSm(e.target.value)} style={iStyle}><option value="no">No</option><option value="yes">Yes</option></select></Field><button onClick={calc} style={btnStyle}>Estimate</button>{res&&<div style={resStyle}>Monthly: <strong>${res.m}</strong> | Annual: <strong>${res.a}</strong></div>}</div>;}
+function DateCalc(){const [d1,setD1]=useState("");const [d2,setD2]=useState("");const [res,setRes]=useState(null);const calc=()=>{const diff=Math.abs(new Date(d2)-new Date(d1));const days=Math.floor(diff/(1000*60*60*24));setRes({days,weeks:Math.floor(days/7),months:Math.floor(days/30)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>📅 Date Calculator</h3><Field label="Start Date"><input type="date" value={d1} onChange={e=>setD1(e.target.value)} style={iStyle}/></Field><Field label="End Date"><input type="date" value={d2} onChange={e=>setD2(e.target.value)} style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}><strong>{res.days}</strong> days | <strong>{res.weeks}</strong> weeks | ~<strong>{res.months}</strong> months</div>}</div>;}
+function SpeedCalc(){const [val,setVal]=useState("");const [from,setFrom]=useState("kmh");const [res,setRes]=useState(null);const toMs={kmh:1/3.6,mph:0.44704,ms:1,knot:0.514444};const calc=()=>{const ms=parseFloat(val)*toMs[from];setRes({kmh:(ms*3.6).toFixed(2),mph:(ms/0.44704).toFixed(2),ms:ms.toFixed(2)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🚀 Speed Converter</h3><Field label="Value"><input type="number" value={val} onChange={e=>setVal(e.target.value)} placeholder="Enter speed" style={iStyle}/></Field><Field label="From"><select value={from} onChange={e=>setFrom(e.target.value)} style={iStyle}><option value="kmh">km/h</option><option value="mph">mph</option><option value="ms">m/s</option><option value="knot">knots</option></select></Field><button onClick={calc} style={btnStyle}>Convert</button>{res&&<div style={resStyle}>km/h: <strong>{res.kmh}</strong> | mph: <strong>{res.mph}</strong> | m/s: <strong>{res.ms}</strong></div>}</div>;}
+function AreaCalc(){const [val,setVal]=useState("");const [from,setFrom]=useState("m2");const [res,setRes]=useState(null);const toM2={m2:1,km2:1e6,ft2:0.092903,acre:4046.86,ha:10000};const calc=()=>{const m2=parseFloat(val)*toM2[from];setRes({m2:m2.toFixed(2),ft2:(m2/0.092903).toFixed(2),acre:(m2/4046.86).toFixed(4),ha:(m2/10000).toFixed(4)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>📐 Area Converter</h3><Field label="Value"><input type="number" value={val} onChange={e=>setVal(e.target.value)} placeholder="Enter area" style={iStyle}/></Field><Field label="From"><select value={from} onChange={e=>setFrom(e.target.value)} style={iStyle}><option value="m2">m²</option><option value="km2">km²</option><option value="ft2">ft²</option><option value="acre">acres</option><option value="ha">ha</option></select></Field><button onClick={calc} style={btnStyle}>Convert</button>{res&&<div style={resStyle}>m²: <strong>{res.m2}</strong> | ft²: <strong>{res.ft2}</strong> | acres: <strong>{res.acre}</strong> | ha: <strong>{res.ha}</strong></div>}</div>;}
+function CurrencyCalc(){
+  const {useState:us,useEffect:ue}=React;
+  const [amount,setAmount]=us("1");
+  const [from,setFrom]=us("USD");
+  const [to,setTo]=us("NGN");
+  const [rates,setRates]=us(null);
+  const [loading,setLoading]=us(false);
+  const [error,setError]=us(null);
+  const [lastUpdated,setLastUpdated]=us(null);
+  const currencies=["USD","EUR","GBP","NGN","GHS","KES","ZAR","INR","CNY","JPY","AED","CAD","AUD","CHF","BRL","MXN","EGP","TZS","UGX","XOF"];
+  const fetchRates=async()=>{
+    setLoading(true);setError(null);
+    try{
+      const res=await fetch(`https://api.exchangerate-api.com/v4/latest/${from}`);
+      const data=await res.json();
+      setRates(data.rates);
+      setLastUpdated(new Date().toLocaleTimeString());
+    }catch(e){setError("Could not fetch rates. Check your internet connection.");}
+    setLoading(false);
+  };
+  ue(()=>{fetchRates();},[from]);
+  const result=rates&&amount?( parseFloat(amount)*rates[to]).toFixed(4):null;
+  return <div>
+    <h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>💱 Currency Converter</h3>
+    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+      <div style={{width:8,height:8,borderRadius:"50%",background:rates?"#16a34a":"#f97316"}}/>
+      <span style={{fontSize:12,color:"#888"}}>{rates?`Live rates · Updated ${lastUpdated}`:"Fetching rates..."}</span>
+    </div>
+    <Field label="Amount"><input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="e.g. 100" style={iStyle}/></Field>
+    <Field label="From"><select value={from} onChange={e=>setFrom(e.target.value)} style={iStyle}>{currencies.map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
+    <Field label="To"><select value={to} onChange={e=>setTo(e.target.value)} style={iStyle}>{currencies.map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
+    {loading&&<div style={{marginTop:12,color:"#6c63ff",fontSize:14}}>⏳ Loading rates...</div>}
+    {error&&<div style={{marginTop:12,color:"#e74c3c",fontSize:14}}>{error} <button onClick={fetchRates} style={{color:"#6c63ff",background:"none",border:"none",cursor:"pointer",fontWeight:700}}>Retry</button></div>}
+    {result&&!loading&&<div style={resStyle}>{amount} {from} = <strong>{result} {to}</strong></div>}
+    <InfoPanel what="A currency converter tells you how much one currency is worth in another. Exchange rates constantly change based on global trade, inflation, interest rates, and geopolitical events. The rates shown here are mid-market rates (the midpoint between buy and sell prices) fetched live from exchangerate-api.com." formula={"Converted Amount = Original Amount × Exchange Rate\n\nExample: If 1 USD = 1,600 NGN\nThen 50 USD = 50 × 1,600 = 80,000 NGN"} example={"Convert 100 USD to NGN:\n\nLive rate: 1 USD = 1,620 NGN\n100 × 1,620 = 162,000 NGN\n\nNote: your bank or money transfer service may charge a fee or use a slightly different rate."} faqs={[{q:"Why is the rate different from my bank?",a:"Banks and exchange bureaus add a markup (spread) on top of the mid-market rate shown here. The difference is their profit margin."},{q:"How often do exchange rates change?",a:"Rates fluctuate every second during trading hours. This converter fetches rates each time you change the base currency."},{q:"What is NGN?",a:"NGN is the ISO code for the Nigerian Naira. Most currencies use 3-letter ISO 4217 codes (USD = US Dollar, GBP = British Pound, EUR = Euro, etc.)."}]}/>
+  </div>;
+}
+function CalorieCalc(){const [age,setAge]=useState("");const [w,setW]=useState("");const [h,setH]=useState("");const [sex,setSex]=useState("male");const [act,setAct]=useState("1.2");const [res,setRes]=useState(null);const calc=()=>{let bmr=sex==="male"?10*parseFloat(w)+6.25*parseFloat(h)-5*parseFloat(age)+5:10*parseFloat(w)+6.25*parseFloat(h)-5*parseFloat(age)-161;setRes(Math.round(bmr*parseFloat(act)));};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🥗 Calorie Calculator</h3><Field label="Age"><input type="number" value={age} onChange={e=>setAge(e.target.value)} placeholder="e.g. 25" style={iStyle}/></Field><Field label="Weight (kg)"><input type="number" value={w} onChange={e=>setW(e.target.value)} placeholder="e.g. 70" style={iStyle}/></Field><Field label="Height (cm)"><input type="number" value={h} onChange={e=>setH(e.target.value)} placeholder="e.g. 175" style={iStyle}/></Field><Field label="Sex"><select value={sex} onChange={e=>setSex(e.target.value)} style={iStyle}><option value="male">Male</option><option value="female">Female</option></select></Field><Field label="Activity"><select value={act} onChange={e=>setAct(e.target.value)} style={iStyle}><option value="1.2">Sedentary</option><option value="1.375">Light exercise</option><option value="1.55">Moderate</option><option value="1.725">Heavy exercise</option></select></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>Daily calories: <strong>{res} kcal</strong></div>}</div>;}
+function WaterCalc(){const [w,setW]=useState("");const [act,setAct]=useState("low");const [res,setRes]=useState(null);const calc=()=>{let b=parseFloat(w)*0.033;if(act==="moderate")b+=0.5;if(act==="high")b+=1.0;setRes(b.toFixed(1));};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>💧 Water Intake Calculator</h3><Field label="Weight (kg)"><input type="number" value={w} onChange={e=>setW(e.target.value)} placeholder="e.g. 70" style={iStyle}/></Field><Field label="Activity"><select value={act} onChange={e=>setAct(e.target.value)} style={iStyle}><option value="low">Low</option><option value="moderate">Moderate</option><option value="high">High</option></select></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>Recommended: <strong>{res} liters/day</strong></div>}</div>;}
+function OvulationCalc(){const [lp,setLp]=useState("");const [cl,setCl]=useState("28");const [res,setRes]=useState(null);const calc=()=>{const last=new Date(lp);const cycle=parseInt(cl);const ov=new Date(last);ov.setDate(ov.getDate()+cycle-14);const fs=new Date(ov);fs.setDate(fs.getDate()-5);const fe=new Date(ov);fe.setDate(fe.getDate()+1);const np=new Date(last);np.setDate(np.getDate()+cycle);const fmt=d=>d.toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric"});setRes({ov:fmt(ov),fs:fmt(fs),fe:fmt(fe),np:fmt(np)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🌸 Ovulation Calculator</h3><Field label="First Day of Last Period"><input type="date" value={lp} onChange={e=>setLp(e.target.value)} style={iStyle}/></Field><Field label="Cycle Length (days)"><input type="number" value={cl} onChange={e=>setCl(e.target.value)} placeholder="28" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>🥚 Ovulation: <strong>{res.ov}</strong><br/>💚 Fertile: <strong>{res.fs} — {res.fe}</strong><br/>📅 Next Period: <strong>{res.np}</strong></div>}</div>;}
+function MenstrualCalc(){const [lp,setLp]=useState("");const [cl,setCl]=useState("28");const [pl,setPl]=useState("5");const [res,setRes]=useState(null);const calc=()=>{const last=new Date(lp);const cycle=parseInt(cl);const pLen=parseInt(pl);const cycles=[];for(let i=1;i<=6;i++){const s=new Date(last);s.setDate(s.getDate()+cycle*i);const e=new Date(s);e.setDate(e.getDate()+pLen-1);const fmt=d=>d.toLocaleDateString("en-US",{month:"short",day:"numeric"});cycles.push({s:fmt(s),e:fmt(e),n:i});}setRes(cycles);};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🌺 Period Tracker</h3><Field label="First Day of Last Period"><input type="date" value={lp} onChange={e=>setLp(e.target.value)} style={iStyle}/></Field><Field label="Cycle Length (days)"><input type="number" value={cl} onChange={e=>setCl(e.target.value)} placeholder="28" style={iStyle}/></Field><Field label="Period Duration (days)"><input type="number" value={pl} onChange={e=>setPl(e.target.value)} placeholder="5" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Predict Next 6 Periods</button>{res&&<div style={{marginTop:16}}>{res.map(c=><div key={c.n} style={{...resStyle,marginBottom:8,padding:"10px 14px"}}><strong>Period {c.n}:</strong> {c.s} — {c.e}</div>)}</div>}</div>;}
+function IdealWeightCalc(){const [h,setH]=useState("");const [sex,setSex]=useState("male");const [res,setRes]=useState(null);const calc=()=>{const base=sex==="male"?50:45.5;const ideal=base+0.9*(parseFloat(h)-152);setRes({ideal:ideal.toFixed(1),low:(ideal*0.9).toFixed(1),high:(ideal*1.1).toFixed(1)});};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>⚕️ Ideal Weight Calculator</h3><Field label="Sex"><select value={sex} onChange={e=>setSex(e.target.value)} style={iStyle}><option value="male">Male</option><option value="female">Female</option></select></Field><Field label="Height (cm)"><input type="number" value={h} onChange={e=>setH(e.target.value)} placeholder="e.g. 175" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>Ideal: <strong>{res.ideal} kg</strong> | Range: <strong>{res.low}–{res.high} kg</strong></div>}</div>;}
+function BodyFatCalc(){const [neck,setNeck]=useState("");const [waist,setWaist]=useState("");const [h,setH]=useState("");const [sex,setSex]=useState("male");const [hip,setHip]=useState("");const [res,setRes]=useState(null);const calc=()=>{let bf;if(sex==="male")bf=495/(1.0324-0.19077*Math.log10(parseFloat(waist)-parseFloat(neck))+0.15456*Math.log10(parseFloat(h)))-450;else bf=495/(1.29579-0.35004*Math.log10(parseFloat(waist)+parseFloat(hip)-parseFloat(neck))+0.22100*Math.log10(parseFloat(h)))-450;setRes(bf.toFixed(1));};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🏃 Body Fat Calculator</h3><Field label="Sex"><select value={sex} onChange={e=>setSex(e.target.value)} style={iStyle}><option value="male">Male</option><option value="female">Female</option></select></Field><Field label="Neck (cm)"><input type="number" value={neck} onChange={e=>setNeck(e.target.value)} placeholder="e.g. 38" style={iStyle}/></Field><Field label="Waist (cm)"><input type="number" value={waist} onChange={e=>setWaist(e.target.value)} placeholder="e.g. 80" style={iStyle}/></Field>{sex==="female"&&<Field label="Hip (cm)"><input type="number" value={hip} onChange={e=>setHip(e.target.value)} placeholder="e.g. 95" style={iStyle}/></Field>}<Field label="Height (cm)"><input type="number" value={h} onChange={e=>setH(e.target.value)} placeholder="e.g. 175" style={iStyle}/></Field><button onClick={calc} style={btnStyle}>Calculate</button>{res&&<div style={resStyle}>Body Fat: <strong>{res}%</strong></div>}</div>;}
+
+// PREGNANCY CALCULATOR
+function PregnancyCalc(){
+  const [lmp,setLmp]=useState("");
+  const [res,setRes]=useState(null);
+  const calc=()=>{
+    if(!lmp)return;
+    const last=new Date(lmp);
+    const due=new Date(last);due.setDate(due.getDate()+280);
+    const today=new Date();
+    const diffDays=Math.floor((today-last)/(1000*60*60*24));
+    const weeks=Math.floor(diffDays/7);
+    const days=diffDays%7;
+    const trimester=weeks<13?"1st Trimester":weeks<27?"2nd Trimester":"3rd Trimester";
+    const fmt=d=>d.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+    // Key milestones
+    const milestone=(w)=>{const d=new Date(last);d.setDate(d.getDate()+w*7);return fmt(d);};
+    setRes({due:fmt(due),weeks,days,trimester,
+      m1:milestone(8),m2:milestone(12),m3:milestone(20),m4:milestone(28),m5:milestone(36)});
+  };
+  return <div>
+    <h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🤰 Pregnancy Calculator</h3>
+    <p style={{fontSize:13,color:"#888",marginBottom:12}}>Enter the first day of your last menstrual period (LMP)</p>
+    <Field label="First Day of Last Menstrual Period (LMP)">
+      <input type="date" value={lmp} onChange={e=>setLmp(e.target.value)} style={iStyle}/>
+    </Field>
+    <button onClick={calc} style={btnStyle}>Calculate Due Date</button>
+    {res&&<div>
+      <div style={{...resStyle,marginBottom:10}}>
+        🗓️ Due Date: <strong>{res.due}</strong><br/>
+        📅 Current: <strong>{res.weeks} weeks, {res.days} days</strong><br/>
+        🌱 Stage: <strong>{res.trimester}</strong>
+      </div>
+      <div style={{marginTop:10}}>
+        <div style={{fontSize:13,fontWeight:700,color:"#6c63ff",marginBottom:8}}>📍 Key Milestones</div>
+        {[
+          {label:"Week 8 — First ultrasound possible",date:res.m1},
+          {label:"Week 12 — End of 1st trimester",date:res.m2},
+          {label:"Week 20 — Anatomy scan / gender reveal",date:res.m3},
+          {label:"Week 28 — Start of 3rd trimester",date:res.m4},
+          {label:"Week 36 — Baby considered full-term soon",date:res.m5},
+        ].map((m,i)=><div key={i} style={{padding:"8px 12px",borderRadius:10,background:"rgba(108,99,255,0.07)",marginBottom:6,fontSize:13}}>
+          <strong>{m.label}</strong><br/><span style={{color:"#666"}}>{m.date}</span>
+        </div>)}
+      </div>
+    </div>}
+    <InfoPanel
+      what="A pregnancy calculator estimates your due date and current pregnancy stage based on the first day of your last menstrual period (LMP). A full-term pregnancy lasts approximately 40 weeks (280 days) from the LMP. Pregnancy is divided into three trimesters, each with distinct developmental stages."
+      formula={"Due Date = LMP + 280 days (Naegele's Rule)\n\nTrimester breakdown:\n• 1st Trimester: Weeks 1–12\n• 2nd Trimester: Weeks 13–26\n• 3rd Trimester: Weeks 27–40"}
+      example={"LMP: January 1, 2026\n\nDue Date = Jan 1 + 280 days = October 8, 2026\n\nAt 20 weeks pregnant:\nAnatomy scan scheduled around May 13, 2026"}
+      faqs={[
+        {q:"What if I don't know my LMP?",a:"Your doctor can estimate your due date from an early ultrasound (usually done at 8–12 weeks), which measures the baby's size."},
+        {q:"How accurate is the due date?",a:"Only about 5% of babies are born exactly on their due date. Most births happen within 2 weeks before or after. The due date is an estimate, not a deadline."},
+        {q:"What is the difference between gestational age and fetal age?",a:"Gestational age is counted from the LMP (what this calculator uses). Fetal age is counted from conception, which is typically 2 weeks less than gestational age."},
+        {q:"When should I see a doctor?",a:"As soon as you have a positive pregnancy test. Early prenatal care (before 12 weeks) is important for both mother and baby's health."}
+      ]}
+    />
+  </div>;
+}
+
+// CLOCKS
+function WorldClock(){const {useState:us,useEffect:ue}=React;const [time,setTime]=us(new Date());ue(()=>{const t=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(t);},[]);const zones=[{city:"Lagos",tz:"Africa/Lagos",flag:"🇳🇬"},{city:"London",tz:"Europe/London",flag:"🇬🇧"},{city:"New York",tz:"America/New_York",flag:"🇺🇸"},{city:"Dubai",tz:"Asia/Dubai",flag:"🇦🇪"},{city:"Mumbai",tz:"Asia/Kolkata",flag:"🇮🇳"},{city:"Tokyo",tz:"Asia/Tokyo",flag:"🇯🇵"},{city:"Sydney",tz:"Australia/Sydney",flag:"🇦🇺"},{city:"São Paulo",tz:"America/Sao_Paulo",flag:"🇧🇷"},{city:"Paris",tz:"Europe/Paris",flag:"🇫🇷"},{city:"Singapore",tz:"Asia/Singapore",flag:"🇸🇬"},{city:"Nairobi",tz:"Africa/Nairobi",flag:"🇰🇪"},{city:"Los Angeles",tz:"America/Los_Angeles",flag:"🇺🇸"}];return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🌍 World Clock</h3><div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>{zones.map(z=><div key={z.city} style={{padding:"12px 14px",borderRadius:12,background:"rgba(108,99,255,0.08)",border:"1.5px solid rgba(108,99,255,0.18)"}}><div style={{fontSize:11,opacity:0.6,marginBottom:2}}>{z.flag} {z.city}</div><div style={{fontWeight:800,fontSize:16,letterSpacing:1,fontVariantNumeric:"tabular-nums"}}>{time.toLocaleTimeString("en-US",{timeZone:z.tz,hour:"2-digit",minute:"2-digit",second:"2-digit"})}</div><div style={{fontSize:11,opacity:0.5}}>{time.toLocaleDateString("en-US",{timeZone:z.tz,weekday:"short",month:"short",day:"numeric"})}</div></div>)}</div></div>;}
+function Stopwatch(){const {useState:us,useEffect:ue}=React;const [running,setRunning]=us(false);const [elapsed,setElapsed]=us(0);const [laps,setLaps]=us([]);const [base,setBase]=us(0);const [startAt,setStartAt]=us(null);ue(()=>{let interval;if(running){const s=Date.now();setStartAt(s);interval=setInterval(()=>setElapsed(base+Date.now()-s),50);}else{if(startAt!==null)setBase(b=>b+Date.now()-startAt);}return()=>clearInterval(interval);},[running]);const fmt=(ms)=>{const m=Math.floor(ms/60000);const s=Math.floor((ms%60000)/1000);const cs=Math.floor((ms%1000)/10);return`${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}.${String(cs).padStart(2,"0")}`;};const reset=()=>{setRunning(false);setElapsed(0);setBase(0);setStartAt(null);setLaps([]);};return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>⏱️ Stopwatch</h3><div style={{textAlign:"center",padding:"28px 0 20px"}}><div style={{fontSize:52,fontWeight:900,letterSpacing:3,fontVariantNumeric:"tabular-nums"}}>{fmt(elapsed)}</div></div><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}><button onClick={()=>setRunning(r=>!r)} style={{...btnStyle,background:running?"#e74c3c":"#6c63ff",marginTop:0}}>{running?"Pause":"Start"}</button><button onClick={()=>setLaps(l=>[{n:l.length+1,t:elapsed},...l])} disabled={!running} style={{...btnStyle,background:"#888",marginTop:0,opacity:running?1:0.4}}>Lap</button><button onClick={reset} style={{...btnStyle,background:"#444",marginTop:0}}>Reset</button></div>{laps.length>0&&<div style={{marginTop:16,maxHeight:180,overflowY:"auto"}}>{laps.map(l=><div key={l.n} style={{display:"flex",justifyContent:"space-between",padding:"8px 4px",borderBottom:"1px solid rgba(108,99,255,0.1)",fontSize:14}}><span style={{opacity:0.6}}>Lap {l.n}</span><strong>{fmt(l.t)}</strong></div>)}</div>}</div>;}
+function CountdownTimer(){const {useState:us,useEffect:ue}=React;const [hours,setHours]=us("0");const [minutes,setMinutes]=us("5");const [seconds,setSeconds]=us("0");const [total,setTotal]=us(null);const [remaining,setRemaining]=us(null);const [running,setRunning]=us(false);const [done,setDone]=us(false);ue(()=>{if(!running||remaining===null)return;if(remaining<=0){setRunning(false);setDone(true);return;}const t=setTimeout(()=>setRemaining(r=>r-1),1000);return()=>clearTimeout(t);},[running,remaining]);const start=()=>{const t=parseInt(hours||0)*3600+parseInt(minutes||0)*60+parseInt(seconds||0);if(!t)return;setTotal(t);setRemaining(t);setRunning(true);setDone(false);};const reset=()=>{setRunning(false);setRemaining(null);setTotal(null);setDone(false);};const fmt=(s)=>`${String(Math.floor(s/3600)).padStart(2,"0")}:${String(Math.floor((s%3600)/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;const pct=total&&remaining!==null?(remaining/total)*100:100;return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>⏳ Countdown Timer</h3>{remaining===null?(<><div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginTop:8}}><div><label style={{fontSize:13,fontWeight:600,display:"block",marginBottom:4}}>Hours</label><input type="number" value={hours} onChange={e=>setHours(e.target.value)} min="0" style={iStyle}/></div><div><label style={{fontSize:13,fontWeight:600,display:"block",marginBottom:4}}>Minutes</label><input type="number" value={minutes} onChange={e=>setMinutes(e.target.value)} min="0" max="59" style={iStyle}/></div><div><label style={{fontSize:13,fontWeight:600,display:"block",marginBottom:4}}>Seconds</label><input type="number" value={seconds} onChange={e=>setSeconds(e.target.value)} min="0" max="59" style={iStyle}/></div></div><button onClick={start} style={{...btnStyle,marginTop:12}}>Start Countdown</button></>):(<div style={{textAlign:"center",padding:"16px 0"}}>{done?<div style={{fontSize:32,fontWeight:800,color:"#e74c3c",padding:"20px 0"}}>⏰ Time's Up!</div>:(<><div style={{fontSize:52,fontWeight:900,letterSpacing:3,fontVariantNumeric:"tabular-nums"}}>{fmt(remaining)}</div><div style={{height:8,background:"rgba(108,99,255,0.15)",borderRadius:8,margin:"20px 0",overflow:"hidden"}}><div style={{height:"100%",width:`${pct}%`,background:"#6c63ff",borderRadius:8,transition:"width 1s linear"}}/></div></>)}<div style={{display:"grid",gridTemplateColumns:done?"1fr":"1fr 1fr",gap:8,marginTop:8}}>{!done&&<button onClick={()=>setRunning(r=>!r)} style={{...btnStyle,background:running?"#e74c3c":"#6c63ff",marginTop:0}}>{running?"Pause":"Resume"}</button>}<button onClick={reset} style={{...btnStyle,background:"#444",marginTop:0,gridColumn:done?"1 / -1":"auto"}}>Reset</button></div></div>)}</div>;}
+function DigitalClock(){const {useState:us,useEffect:ue}=React;const [time,setTime]=us(new Date());const [tz,setTz]=us(Intl.DateTimeFormat().resolvedOptions().timeZone);ue(()=>{const t=setInterval(()=>setTime(new Date()),1000);return()=>clearInterval(t);},[]);const tzList=["America/New_York","America/Los_Angeles","America/Chicago","America/Toronto","America/Sao_Paulo","Europe/London","Europe/Paris","Europe/Berlin","Africa/Lagos","Africa/Nairobi","Asia/Dubai","Asia/Kolkata","Asia/Tokyo","Asia/Singapore","Australia/Sydney","Pacific/Auckland"];return <div><h3 style={{fontSize:20,fontWeight:700,marginBottom:16}}>🕐 Digital Clock</h3><Field label="Timezone"><select value={tz} onChange={e=>setTz(e.target.value)} style={iStyle}>{tzList.map(z=><option key={z} value={z}>{z.replace(/_/g," ")}</option>)}</select></Field><div style={{textAlign:"center",padding:"36px 16px",marginTop:16,background:"rgba(108,99,255,0.07)",borderRadius:16}}><div style={{fontSize:48,fontWeight:900,letterSpacing:4,fontVariantNumeric:"tabular-nums"}}>{time.toLocaleTimeString("en-US",{timeZone:tz,hour:"2-digit",minute:"2-digit",second:"2-digit"})}</div><div style={{fontSize:15,opacity:0.6,marginTop:10}}>{time.toLocaleDateString("en-US",{timeZone:tz,weekday:"long",year:"numeric",month:"long",day:"numeric"})}</div></div></div>;}
+
+const components = {
+  quadratic:QuadraticCalc, pythagoras:PythagorasCalc, statistics:StatisticsCalc, fraction:FractionCalc,
+  prime:PrimeCalc, lcmhcf:LCMHCFCalc, scientific:ScientificCalc, percentage:PercentageCalc,
+  ohmslaw:OhmsLawCalc, kinetic:KineticCalc, potential:PotentialCalc, velocity:VelocityCalc,
+  power:PowerCalc, wave:WaveCalc, gravity:GravityCalc, pressure:PressureCalc,
+  molarmass:MolarMassCalc, molarity:MolarityCalc, ph:PHCalc, dilution:DilutionCalc,
+  ideal_gas:IdealGasCalc, percent_comp:PercentCompCalc,
+  age:AgeCalc, loan:LoanCalc, salary:SalaryCalc, gpa:GPACalc, mortgage:MortgageCalc,
+  compound:CompoundCalc, discount:DiscountCalc, profit:ProfitCalc, insurance:InsuranceCalc, date:DateCalc,
+  length:LengthCalc, weight:WeightCalc, temperature:TempCalc, area:AreaCalc, speed:SpeedCalc, currency:CurrencyCalc,
+  bmi:BMICalc, calorie:CalorieCalc, water:WaterCalc, ovulation:OvulationCalc, menstrual:MenstrualCalc,
+  idealweight:IdealWeightCalc, bodyfat:BodyFatCalc, pregnancy:PregnancyCalc,
+  worldclock:WorldClock, stopwatch:Stopwatch, countdown:CountdownTimer, clock:DigitalClock,
+};
+
+function App() {
+  const [dark,setDark]=useState(false);
+  const [search,setSearch]=useState("");
+  const [active,setActive]=useState(null);
+  const [recent,setRecent]=useState([]);
+  const [screen,setScreen]=useState("home"); // home | privacy | terms | contact
+
+  const filtered=search.trim()?allTools.filter(t=>t.name.toLowerCase().includes(search.toLowerCase())):[];
+  const open=(tool)=>{setActive(tool);setSearch("");setRecent(prev=>[tool,...prev.filter(r=>r.id!==tool.id)].slice(0,8));};
+  const Comp=active?components[active.id]:null;
+  const bg=dark?"#0f0f1a":"#f5f5fb",card=dark?"#1a1a2e":"#fff",text=dark?"#e8e8f8":"#1a1a2e",sub=dark?"#888":"#666",border=dark?"#2a2a40":"#e8e8f0",accent="#6c63ff";
+
+  // ── FULL FOOTER COMPONENT ──
+  const SiteFooter = () => (
+    <div style={{marginTop:32,background:dark?"#0a0a18":"#1a1a2e",borderRadius:16,padding:"28px 20px",color:"#ccc"}}>
+      {/* Brand */}
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+        <div style={{width:34,height:34,background:accent,borderRadius:9,display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:900,fontSize:16}}>Σ</div>
+        <span style={{fontWeight:800,fontSize:16,color:"white"}}>CalcHub</span>
+      </div>
+      <p style={{fontSize:13,lineHeight:1.7,marginBottom:20,color:"#aaa"}}>Your universal platform for calculators, converters, and health tools. Fast, accurate, and free.</p>
+      {/* Link columns */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:16,marginBottom:24}}>
+        <div>
+          <div style={{fontSize:12,fontWeight:700,color:"white",marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>Calculators</div>
+          {["Percentage Calculator","Age Calculator","Date Calculator","GPA Calculator","Loan Calculator"].map(n=>(
+            <div key={n} onClick={()=>{const t=allTools.find(x=>x.name===n);if(t)open(t);}} style={{fontSize:12,color:"#aaa",marginBottom:6,cursor:"pointer"}}>{n}</div>
+          ))}
+          <div onClick={()=>setActive(null)} style={{fontSize:12,color:accent,cursor:"pointer",marginTop:4}}>View all →</div>
+        </div>
+        <div>
+          <div style={{fontSize:12,fontWeight:700,color:"white",marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>Converters</div>
+          {["Currency Converter","Length Converter","Weight Converter","Temperature Converter","Area Converter"].map(n=>(
+            <div key={n} onClick={()=>{const t=allTools.find(x=>x.name===n);if(t)open(t);}} style={{fontSize:12,color:"#aaa",marginBottom:6,cursor:"pointer"}}>{n}</div>
+          ))}
+          <div onClick={()=>setActive(null)} style={{fontSize:12,color:accent,cursor:"pointer",marginTop:4}}>View all →</div>
+        </div>
+        <div>
+          <div style={{fontSize:12,fontWeight:700,color:"white",marginBottom:10,textTransform:"uppercase",letterSpacing:1}}>Health Tools</div>
+          {["BMI Calculator","Calorie Calculator","Water Intake","Body Fat Calculator","Ideal Weight"].map(n=>(
+            <div key={n} onClick={()=>{const t=allTools.find(x=>x.name===n);if(t)open(t);}} style={{fontSize:12,color:"#aaa",marginBottom:6,cursor:"pointer"}}>{n}</div>
+          ))}
+          <div onClick={()=>setActive(null)} style={{fontSize:12,color:accent,cursor:"pointer",marginTop:4}}>View all →</div>
+        </div>
+      </div>
+      {/* Bottom bar */}
+      <div style={{borderTop:"1px solid #2a2a40",paddingTop:16}}>
+        <p style={{fontSize:12,color:"#666",textAlign:"center",marginBottom:10}}>© 2026 Universal Calculator Hub. All rights reserved.</p>
+        <div style={{display:"flex",justifyContent:"center",gap:20,flexWrap:"wrap"}}>
+          <button onClick={()=>{setActive(null);setScreen("about");}} style={{background:"none",border:"none",color:"#aaa",fontSize:12,cursor:"pointer"}}>About</button>
+          <button onClick={()=>{setActive(null);setScreen("privacy");}} style={{background:"none",border:"none",color:"#aaa",fontSize:12,cursor:"pointer"}}>Privacy Policy</button>
+          <button onClick={()=>{setActive(null);setScreen("terms");}} style={{background:"none",border:"none",color:"#aaa",fontSize:12,cursor:"pointer"}}>Terms of Service</button>
+          <button onClick={()=>{setActive(null);setScreen("contact");}} style={{background:"none",border:"none",color:"#aaa",fontSize:12,cursor:"pointer"}}>Contact</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── LEGAL SCREENS ──
+  if(screen==="privacy"||screen==="terms"||screen==="contact"||screen==="about"){
+    const titles={privacy:"Privacy Policy",terms:"Terms of Service",contact:"Contact Us",about:"About"};
+    const contents={
+      privacy:`Privacy Policy
+Last updated: June 30, 2026
+
+1. Information We Collect
+Universal Calculator Hub processes all calculations locally in your browser. We do not collect, store, or transmit any personal calculation data.
+
+2. Cookies & Local Storage
+We use local storage to save your preferences such as recently used tools and favourite calculators. This data stays on your device only.
+
+3. Analytics
+We may use anonymous analytics to understand how our tools are used and improve the user experience. No personally identifiable information is collected.
+
+4. Third-Party Services
+We display advertisements from Google AdSense. These services may use cookies to serve relevant ads based on your browsing. You can opt out at adssettings.google.com.
+
+5. Contact
+If you have questions about this privacy policy, please contact us at obioraazubuike78@gmail.com.`,
+      terms:`Terms of Service
+Last updated: June 30, 2026
+
+1. Acceptance of Terms
+By using Universal Calculator Hub, you agree to these terms. Our tools are provided "as is" for informational and educational purposes.
+
+2. Disclaimer
+While we strive for accuracy, results from our calculators and converters should not be used as the sole basis for financial, medical, or legal decisions. Always consult a qualified professional.
+
+3. Intellectual Property
+All content, design, and code on this website is the property of Universal Calculator Hub and is protected by copyright law. Developed by Azubuike Christian Obiora.
+
+4. Limitation of Liability
+We are not liable for any damages arising from the use of our tools or the information provided on this website.
+
+5. Changes to Terms
+We reserve the right to update these terms at any time. Continued use of the site means you accept the updated terms.`,
+      about:`About Universal Calculator Hub
+
+Universal Calculator Hub is a free online calculator built for students and professionals across Nigeria and Africa.
+
+WHAT WE OFFER
+• Mathematics: Quadratic equations, Pythagoras, Statistics, Fractions, LCM & HCF, Prime numbers, Scientific calculator
+• Physics: Ohm's Law, Kinetic Energy, Potential Energy, Velocity, Power, Wave Speed, Gravity, Pressure
+• Chemistry: Molar Mass, Molarity, pH, Dilution, Ideal Gas Law, Percent Composition
+• Finance: Loan, Mortgage, Compound Interest, GPA, Salary, Discount, Profit
+• Health: BMI, Calories, Water Intake, Ovulation, Period Tracker, Ideal Weight, Body Fat
+• Converters: Length, Weight, Temperature, Area, Speed, Currency
+• Clocks: World Clock, Stopwatch, Countdown Timer, Digital Clock
+
+PERFECT FOR
+WAEC · JAMB · NECO · University students · Professionals
+
+FREQUENTLY ASKED QUESTIONS
+
+Are all calculators free?
+Yes, every calculator is completely free with no registration required.
+
+Does it work offline?
+Yes! Install as a PWA app on your Android phone and use without internet.
+
+Is it good for WAEC and JAMB?
+Yes! Our physics, chemistry and maths calculators are perfect for Nigerian exam prep.
+
+Developed by: Azubuike Christian Obiora
+© 2026 Universal Calculator Hub. All rights reserved.`,
+      contact:`Contact Us
+
+We would love to hear from you.
+
+Email: obioraazubuike78@gmail.com
+
+For bug reports, feature requests, calculator suggestions, or business enquiries — send us an email and we will respond within 48 hours.
+
+Developed by:
+Azubuike Christian Obiora
+
+Universal Calculator Hub
+Free calculators for students and professionals worldwide.`
+    };
+    return(
+      <div style={{minHeight:"100vh",background:bg,color:text,fontFamily:"'Segoe UI',Inter,sans-serif",transition:"all 0.2s"}}>
+        <div style={{background:card,borderBottom:`1.5px solid ${border}`,padding:"14px 20px",position:"sticky",top:0,zIndex:100,display:"flex",alignItems:"center",gap:12}}>
+          <button onClick={()=>setScreen("home")} style={{background:"transparent",color:text,border:`1.5px solid ${border}`,borderRadius:8,padding:"7px 14px",cursor:"pointer",fontSize:13,fontWeight:600}}>← Back</button>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:30,height:30,background:accent,borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:900,fontSize:14}}>Σ</div>
+            <span style={{fontWeight:700,fontSize:15}}>{titles[screen]}</span>
+          </div>
+        </div>
+        <div style={{maxWidth:700,margin:"0 auto",padding:"24px 16px"}}>
+          <div style={{background:card,border:`1.5px solid ${border}`,borderRadius:16,padding:24,marginBottom:20}}>
+            <pre style={{whiteSpace:"pre-wrap",fontFamily:"'Segoe UI',Inter,sans-serif",fontSize:14,lineHeight:1.9,color:text}}>{contents[screen]}</pre>
+          </div>
+          <SiteFooter/>
+        </div>
+      </div>
+    );
+  }
+
+  // ── CATEGORY CONFIG ──
+  const cats = [
+    {label:"🧮 Maths",    key:"maths",       color:"#6c63ff", grad:"linear-gradient(135deg,#6c63ff,#4f46e5)", light:"#eef0ff"},
+    {label:"⚡ Physics",  key:"physics",     color:"#f97316", grad:"linear-gradient(135deg,#f97316,#ea580c)", light:"#fff4ed"},
+    {label:"⚗️ Chem",    key:"chemistry",   color:"#16a34a", grad:"linear-gradient(135deg,#16a34a,#15803d)", light:"#f0fdf4"},
+    {label:"💼 Finance",  key:"calculators", color:"#b45309", grad:"linear-gradient(135deg,#b45309,#92400e)", light:"#fffbeb"},
+    {label:"🔄 Convert",  key:"converters",  color:"#0891b2", grad:"linear-gradient(135deg,#0891b2,#0e7490)", light:"#ecfeff"},
+    {label:"❤️ Health",   key:"health",      color:"#db2777", grad:"linear-gradient(135deg,#db2777,#be185d)", light:"#fdf2f8"},
+    {label:"🕐 Clocks",   key:"clocks",      color:"#4338ca", grad:"linear-gradient(135deg,#4338ca,#3730a3)", light:"#eef2ff"},
+  ];
+  const [activeCat, setActiveCat] = useState(null);
+  const displayedCats = activeCat ? cats.filter(c=>c.key===activeCat) : cats;
+
+  return (
+    <div style={{minHeight:"100vh",background:bg,color:text,fontFamily:"'Segoe UI',Inter,system-ui,sans-serif",transition:"background 0.25s,color 0.25s"}}>
+      <style>{`
+        *{box-sizing:border-box;margin:0;padding:0;}
+        input,select,textarea{font-family:'Segoe UI',Inter,sans-serif;background:${bg};color:${text};}
+        .tc{background:${card};border:1.5px solid ${border};border-radius:18px;padding:18px;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden;}
+        .tc:hover{transform:translateY(-3px);box-shadow:0 8px 28px rgba(108,99,255,0.15);border-color:#6c63ff55;}
+        .tc::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(108,99,255,0.04),transparent);opacity:0;transition:opacity 0.2s;}
+        .tc:hover::before{opacity:1;}
+        .rc{background:${card};border:1.5px solid ${border};border-radius:14px;padding:12px 14px;cursor:pointer;transition:all 0.18s;display:flex;align-items:center;gap:10px;}
+        .rc:hover{border-color:#6c63ff55;transform:translateY(-1px);box-shadow:0 4px 16px rgba(108,99,255,0.1);}
+        .pill{padding:8px 16px;border-radius:20px;border:1.5px solid ${border};background:${card};color:${sub};font-size:12px;font-weight:700;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+        .pill:hover{border-color:#6c63ff;color:#6c63ff;}
+        .pill.on{background:#6c63ff;color:white;border-color:#6c63ff;box-shadow:0 3px 12px rgba(108,99,255,0.35);}
+        .sbox{width:100%;padding:13px 16px 13px 46px;border:2px solid ${border};border-radius:16px;font-size:15px;outline:none;transition:border 0.2s,box-shadow 0.2s;background:${card};color:${text};}
+        .sbox:focus{border-color:#6c63ff;box-shadow:0 0 0 4px rgba(108,99,255,0.1);}
+        .bbtn{padding:9px 18px;background:${card};color:${text};border:1.5px solid ${border};border-radius:12px;cursor:pointer;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;transition:all 0.15s;}
+        .bbtn:hover{border-color:#6c63ff;color:#6c63ff;}
+        .cwrap{background:${card};border:1.5px solid ${border};border-radius:22px;padding:28px 24px;box-shadow:0 4px 30px rgba(0,0,0,0.06);}
+        ::-webkit-scrollbar{width:5px;height:5px;}
+        ::-webkit-scrollbar-thumb{background:#6c63ff33;border-radius:3px;}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        .fi{animation:fadeIn 0.25s ease forwards;}
+      `}</style>
+
+      {/* ── GLASSMORPHISM HEADER ── */}
+      <div style={{background:dark?"rgba(15,15,26,0.94)":"rgba(255,255,255,0.94)",backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderBottom:`1px solid ${dark?"rgba(255,255,255,0.07)":"rgba(108,99,255,0.12)"}`,padding:"13px 20px",position:"sticky",top:0,zIndex:200,display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>{setActive(null);setScreen("home");setActiveCat(null);}}>
+          <div style={{width:38,height:38,background:"linear-gradient(135deg,#6c63ff,#4f46e5)",borderRadius:11,display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:900,fontSize:18,boxShadow:"0 3px 12px rgba(108,99,255,0.4)"}}>Σ</div>
+          <div>
+            <div style={{fontWeight:900,fontSize:16,letterSpacing:-0.3,lineHeight:1}}>CalcHub</div>
+            <div style={{fontSize:10,color:sub,letterSpacing:0.8,textTransform:"uppercase",marginTop:1}}>{allTools.length}+ Free Tools</div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          {active&&<button className="bbtn" onClick={()=>setActive(null)}>← Back</button>}
+          <button onClick={()=>setDark(!dark)} style={{width:38,height:38,background:dark?"#1a1a2e":"#f0eeff",color:dark?"#ffd700":"#6c63ff",border:`1.5px solid ${border}`,borderRadius:11,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}>{dark?"☀️":"🌙"}</button>
+        </div>
+      </div>
+
+      <div style={{maxWidth:720,margin:"0 auto",padding:"0 16px 40px"}}>
+
+        {/* ── HERO ── */}
+        {!active&&screen==="home"&&(
+          <div className="fi" style={{textAlign:"center",padding:"36px 0 24px"}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:6,background:dark?"rgba(108,99,255,0.15)":"rgba(108,99,255,0.09)",border:"1px solid rgba(108,99,255,0.25)",borderRadius:20,padding:"5px 14px",marginBottom:16}}>
+              <span style={{fontSize:11,fontWeight:700,color:"#6c63ff",letterSpacing:1,textTransform:"uppercase"}}>Free · Instant · Offline PWA</span>
+            </div>
+            <h1 style={{fontSize:30,fontWeight:900,lineHeight:1.12,marginBottom:12,letterSpacing:-0.5}}>
+              Universal Calculator
+              <span style={{display:"block",backgroundImage:"linear-gradient(135deg,#6c63ff,#06b6d4)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}> Hub</span>
+            </h1>
+            <p style={{color:sub,fontSize:14,lineHeight:1.7}}>Maths · Physics · Chemistry · Health · Finance · Clocks<br/>Perfect for WAEC, JAMB &amp; university students</p>
+          </div>
+        )}
+
+        {/* ── SMART SEARCH ── */}
+        {!active&&screen==="home"&&(
+          <div className="fi" style={{marginBottom:20,position:"relative"}}>
+            <span style={{position:"absolute",left:15,top:"50%",transform:"translateY(-50%)",fontSize:17,opacity:0.4,pointerEvents:"none"}}>🔍</span>
+            <input className="sbox" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search — try 'quadratic', 'BMI', 'ohms law', 'pH'..."/>
+            {search&&<button onClick={()=>setSearch("")} style={{position:"absolute",right:13,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",fontSize:18,cursor:"pointer",opacity:0.4,color:text}}>×</button>}
+          </div>
+        )}
+
+        {/* ── SEARCH RESULTS ── */}
+        {!active&&search.trim()&&(
+          <div className="fi" style={{marginBottom:24}}>
+            <div style={{fontSize:12,color:sub,fontWeight:600,marginBottom:12}}>{filtered.length} result{filtered.length!==1?"s":""} for "{search}"</div>
+            {filtered.length===0?(
+              <div style={{textAlign:"center",padding:"32px 0",color:sub}}>
+                <div style={{fontSize:32,marginBottom:8}}>🔍</div>
+                <div style={{fontSize:14}}>No tools found. Try "loan", "bmi", "quadratic" or "pH"</div>
+              </div>
+            ):(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                {filtered.map((t,i)=>{
+                  const catKey=Object.keys(tools).find(k=>tools[k].some(x=>x.id===t.id));
+                  const cat=cats.find(c=>c.key===catKey);
+                  return(
+                    <div key={t.id+i} className="tc fi" onClick={()=>open(t)} style={{animationDelay:`${i*0.04}s`}}>
+                      <div style={{width:40,height:40,borderRadius:12,background:cat?.grad||"linear-gradient(135deg,#6c63ff,#4f46e5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:10}}>{t.icon}</div>
+                      <div style={{fontWeight:700,fontSize:13,marginBottom:3}}>{t.name}</div>
+                      <div style={{fontSize:11,color:sub,lineHeight:1.4}}>{t.desc}</div>
+                      <div style={{marginTop:8,fontSize:11,color:cat?.color||"#6c63ff",fontWeight:600}}>{cat?.label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── HOME CONTENT ── */}
+        {!active&&!search&&screen==="home"&&(
+          <div className="fi">
+            {/* Category filter pills */}
+            <div style={{display:"flex",gap:7,overflowX:"auto",paddingBottom:4,marginBottom:24,scrollbarWidth:"none"}}>
+              <button className={`pill${!activeCat?" on":""}`} onClick={()=>setActiveCat(null)}>All</button>
+              {cats.map(c=>(
+                <button key={c.key} className={`pill${activeCat===c.key?" on":""}`}
+                  onClick={()=>setActiveCat(activeCat===c.key?null:c.key)}
+                  style={activeCat===c.key?{background:c.color,borderColor:c.color,boxShadow:`0 3px 12px ${c.color}44`}:{}}
+                >{c.label}</button>
+              ))}
+            </div>
+
+            {/* Recently used */}
+            {recent.length>0&&!activeCat&&(
+              <div style={{marginBottom:28}}>
+                <div style={{fontSize:11,fontWeight:700,color:sub,textTransform:"uppercase",letterSpacing:1.2,marginBottom:12}}>🕐 Recently Used</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                  {recent.map((t,i)=>{
+                    const catKey=Object.keys(tools).find(k=>tools[k].some(x=>x.id===t.id));
+                    const cat=cats.find(c=>c.key===catKey);
+                    return(
+                      <div key={t.id+i} className="rc" onClick={()=>open(t)}>
+                        <div style={{width:34,height:34,minWidth:34,borderRadius:10,background:cat?.grad||"linear-gradient(135deg,#6c63ff,#4f46e5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{t.icon}</div>
+                        <div>
+                          <div style={{fontWeight:700,fontSize:12,lineHeight:1.3}}>{t.name}</div>
+                          <div style={{fontSize:10,color:sub,marginTop:1}}>{cat?.label}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Tool categories */}
+            {displayedCats.map(({label,key,color,grad,light})=>(
+              <div key={key} style={{marginBottom:32}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10}}>
+                    <div style={{width:4,height:22,borderRadius:2,background:grad}}/>
+                    <span style={{fontSize:15,fontWeight:800,color}}>{label}</span>
+                    <span style={{fontSize:11,color:sub,fontWeight:600,background:dark?"rgba(255,255,255,0.06)":light,padding:"2px 8px",borderRadius:10,border:`1px solid ${border}`}}>{tools[key].length}</span>
+                  </div>
+                  {activeCat&&<button onClick={()=>setActiveCat(null)} style={{fontSize:12,color:sub,background:"none",border:"none",cursor:"pointer",fontWeight:600}}>← All</button>}
+                </div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                  {tools[key].map((t,i)=>(
+                    <div key={t.id} className="tc fi" onClick={()=>open(t)} style={{animationDelay:`${i*0.04}s`}}>
+                      <div style={{width:42,height:42,borderRadius:13,background:grad,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,marginBottom:12,boxShadow:`0 3px 10px ${color}33`}}>{t.icon}</div>
+                      <div style={{fontWeight:700,fontSize:13,marginBottom:4,letterSpacing:-0.1}}>{t.name}</div>
+                      <div style={{fontSize:11,color:sub,lineHeight:1.5}}>{t.desc}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            <SiteFooter/>
+          </div>
+        )}
+
+        {/* ── CALCULATOR VIEW ── */}
+        {active&&(
+          <div className="fi" style={{paddingTop:20}}>
+            {(()=>{
+              const catKey=Object.keys(tools).find(k=>tools[k].some(x=>x.id===active.id));
+              const cat=cats.find(c=>c.key===catKey);
+              const related=catKey?tools[catKey].filter(t=>t.id!==active.id).slice(0,4):[];
+              return(<>
+                <div style={{marginBottom:18,padding:"16px 18px",borderRadius:18,background:card,border:`1.5px solid ${border}`,display:"flex",alignItems:"center",gap:14}}>
+                  <div style={{width:50,height:50,minWidth:50,borderRadius:14,background:cat?.grad||"linear-gradient(135deg,#6c63ff,#4f46e5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,boxShadow:`0 4px 14px ${cat?.color||"#6c63ff"}44`}}>{active.icon}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:800,fontSize:17,marginBottom:3,letterSpacing:-0.2}}>{active.name}</div>
+                    <div style={{fontSize:12,color:sub,lineHeight:1.4}}>{active.desc}</div>
+                  </div>
+                </div>
+                <div className="cwrap">
+                  {Comp?<Comp/>:<p style={{color:sub}}>Coming soon!</p>}
+                </div>
+                {related.length>0&&(
+                  <div style={{marginTop:22}}>
+                    <div style={{fontSize:11,fontWeight:700,color:sub,textTransform:"uppercase",letterSpacing:1.2,marginBottom:10}}>Related Tools</div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                      {related.map(t=>(
+                        <div key={t.id} className="rc" onClick={()=>open(t)}>
+                          <span style={{fontSize:18}}>{t.icon}</span>
+                          <div style={{fontWeight:600,fontSize:12}}>{t.name}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div style={{marginTop:20}}><SiteFooter/></div>
+              </>);
+            })()}
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js');});}
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt',(e)=>{e.preventDefault();deferredPrompt=e;const banner=document.getElementById('install-banner');if(banner)banner.style.display='flex';});
+document.addEventListener('DOMContentLoaded',()=>{const btn=document.getElementById('install-btn');const close=document.getElementById('install-close');const banner=document.getElementById('install-banner');if(btn){btn.addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;if(banner)banner.style.display='none';}});}if(close){close.addEventListener('click',()=>{if(banner)banner.style.display='none';});}});
+</script>
+<div id="install-banner" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#6c63ff;color:white;padding:14px 16px;align-items:center;justify-content:space-between;z-index:9999;font-family:'Segoe UI',sans-serif;box-shadow:0 -4px 20px rgba(0,0,0,0.2);">
+  <div><div style="font-weight:700;font-size:15px">📱 Install CalcHub</div><div style="font-size:12px;opacity:0.85">Add to home screen for quick access</div></div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button id="install-btn" style="background:white;color:#6c63ff;border:none;border-radius:8px;padding:8px 16px;font-weight:700;cursor:pointer;font-size:14px">Install</button>
+    <button id="install-close" style="background:transparent;color:white;border:none;font-size:20px;cursor:pointer;padding:4px">×</button>
+  </div>
+</div>
+</body>
+</html>
