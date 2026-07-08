@@ -1,12 +1,15 @@
 {
   "name": "Universal Calculator Hub",
   "short_name": "CalcHub",
-  "description": "Free calculators, converters, clocks and health tools.",
-  "start_url": "/",
+  "description": "60+ Free Calculators — Maths, Physics, Chemistry, Health, Finance. Perfect for WAEC, JAMB and university students worldwide.",
+  "start_url": "/calchub/",
+  "scope": "/calchub/",
   "display": "standalone",
-  "background_color": "#f5f5fb",
+  "background_color": "#0f0f1a",
   "theme_color": "#6c63ff",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "lang": "en",
+  "categories": ["education", "utilities", "productivity"],
   "icons": [
     {
       "src": "icon-192.png",
@@ -20,6 +23,5 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ],
-  "categories": ["utilities", "productivity"]
+  ]
 }
