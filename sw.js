@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calchub-v4'; // bump this on every future deploy that changes content
+const CACHE_NAME = 'calchub-v5'; // bump this on every future deploy that changes content
 const BASE = '/calchub/';
 const URLS = [
   BASE,
@@ -32,14 +32,13 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const req = e.request;
+  const isAppCode = req.url.endsWith('app.js') || req.url.endsWith('.html');
 
-  // Network-first for navigations (the HTML page itself) so updates show up immediately.
-  if (req.mode === 'navigate' || (req.method === 'GET' && req.headers.get('accept')?.includes('text/html'))) {
+  // Network-first for navigations AND app.js/html - so code updates show up immediately.
+  if (req.mode === 'navigate' || isAppCode || (req.method === 'GET' && req.headers.get('accept')?.includes('text/html'))) {
     e.respondWith(
       fetch(req)
         .then(response => {
-          // Only cache clean, successful responses - never let a 404 or
-          // error response get stored as the "good" cached copy.
           if (response && response.status === 200) {
             const clone = response.clone();
             caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
@@ -51,7 +50,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Cache-first for static assets (icons, manifest, etc.) — fine to keep, they rarely change.
+  // Cache-first for truly static assets (icons, manifest) - fine to keep, they rarely change.
   e.respondWith(
     caches.match(req).then(cached => {
       if (cached) return cached;
