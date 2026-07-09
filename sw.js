@@ -38,8 +38,12 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       fetch(req)
         .then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          // Only cache clean, successful responses - never let a 404 or
+          // error response get stored as the "good" cached copy.
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          }
           return response;
         })
         .catch(() => caches.match(req).then(cached => cached || caches.match(BASE + 'index.html')))
