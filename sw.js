@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calchub-v3';
+const CACHE_NAME = 'calchub-v4'; // bump this on every future deploy that changes content
 const BASE = '/calchub/';
 const URLS = [
   BASE,
@@ -31,20 +31,34 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  const req = e.request;
+
+  // Network-first for navigations (the HTML page itself) so updates show up immediately.
+  if (req.mode === 'navigate' || (req.method === 'GET' && req.headers.get('accept')?.includes('text/html'))) {
+    e.respondWith(
+      fetch(req)
+        .then(response => {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          return response;
+        })
+        .catch(() => caches.match(req).then(cached => cached || caches.match(BASE + 'index.html')))
+    );
+    return;
+  }
+
+  // Cache-first for static assets (icons, manifest, etc.) — fine to keep, they rarely change.
   e.respondWith(
-    caches.match(e.request).then(cached => {
+    caches.match(req).then(cached => {
       if (cached) return cached;
-      return fetch(e.request).then(response => {
+      return fetch(req).then(response => {
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
         }
         const clone = response.clone();
-        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
         return response;
-      }).catch(() => {
-        // Offline fallback — return cached index
-        return caches.match(BASE + 'index.html');
-      });
+      }).catch(() => caches.match(BASE + 'index.html'));
     })
   );
 });
