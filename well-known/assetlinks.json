@@ -1,8 +1,0 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.mythbborrnquill.app",
-        "sha256_cert_fingerprints": ["A5:A7:47:FD:40:8E:E6:9F:EF:2D:E9:04:61:4C:6D:8D:28:D9:1D:A7:AA:83:65:E1:43:10:41:09:DB:4A:F4:CD"]
-      }
-    }]
