@@ -31,13 +31,22 @@ const PAGES = [
   'velocity.html', 'water.html', 'wave.html', 'weight.html', 'worldclock.html',
 ].map(p => BASE + p);
 
+// React is loaded from cdnjs by every page, so it must be cached for offline use
+const CDN = [
+  'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js',
+];
+
 const NETWORK_TIMEOUT = 4000; // ms before falling back to cache on bad data
 
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
       // allSettled: one missing file will not break the whole install
-      Promise.allSettled([...CORE, ...PAGES].map(url => cache.add(url)))
+      Promise.allSettled([
+        ...[...CORE, ...PAGES].map(url => cache.add(url)),
+        ...CDN.map(url => cache.add(new Request(url, { mode: 'cors' }))),
+      ])
     )
   );
   self.skipWaiting();
@@ -71,7 +80,8 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return; // leave ads/analytics alone
+  const isCDN = CDN.includes(req.url);
+  if (url.origin !== self.location.origin && !isCDN) return; // leave ads/analytics alone
 
   const isPage =
     req.mode === 'navigate' ||
@@ -102,7 +112,7 @@ self.addEventListener('fetch', e => {
       if (cached) return cached;
       return fetch(req)
         .then(res => {
-          if (res && res.status === 200 && res.type === 'basic') {
+          if (res && res.status === 200 && (res.type === 'basic' || isCDN)) {
             const clone = res.clone();
             caches.open(CACHE_NAME).then(c => c.put(req, clone));
           }
