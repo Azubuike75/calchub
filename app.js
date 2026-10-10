@@ -395,11 +395,12 @@ function integrate(terms, aStr, bStr) {
 }
 /* ===== Limit calculator engine: safe parser (no eval) + numeric limit estimator ===== */
 const BAD_EXPR_MSG = "Couldn't read that. Use x with + - * / ^, brackets, and sin, cos, tan, asin, acos, atan, sqrt, abs, ln, log (base 10), exp, pi, e. Example: (x^2-1)/(x-1)";
-function compileExpr(str) {
+function compileExpr(str, deg) {
     const s = String(str).toLowerCase().replace(/\s+/g, "").replace(/[\u2212\u2013\u2014]/g, "-").replace(/\u00D7/g, "*").replace(/\u00F7/g, "/").replace(/\u03C0/g, "pi").replace(/\*\*/g, "^");
     if (!s || s.length > 200)
         throw new Error("bad input");
-    const FUN = { sin: Math.sin, cos: Math.cos, tan: Math.tan, asin: Math.asin, acos: Math.acos, atan: Math.atan, sqrt: Math.sqrt, abs: Math.abs, ln: Math.log, log: Math.log10, log10: Math.log10, log2: Math.log2, exp: Math.exp };
+    const D2R = deg ? Math.PI / 180 : 1, R2D = deg ? 180 / Math.PI : 1;
+    const FUN = { sin: v => Math.sin(v * D2R), cos: v => Math.cos(v * D2R), tan: v => (deg && Math.abs((((v % 180) + 180) % 180) - 90) < 1e-9) ? NaN : Math.tan(v * D2R), asin: v => Math.asin(v) * R2D, acos: v => Math.acos(v) * R2D, atan: v => Math.atan(v) * R2D, sqrt: Math.sqrt, abs: Math.abs, ln: Math.log, log: Math.log10, log10: Math.log10, log2: Math.log2, exp: Math.exp };
     let pos = 0;
     const peek = () => s[pos];
     const startsFactor = () => { const c = peek(); return c !== undefined && /[0-9.(a-z]/.test(c); };
@@ -437,8 +438,10 @@ function compileExpr(str) {
     }
     function parsePower() {
         const base = parseAtom();
-        if (peek() === "^") { pos++; const ex = parseUnary(); return x => Math.pow(base(x), ex(x)); }
-        return base;
+        let node = base;
+        if (peek() === "^") { pos++; const ex = parseUnary(); node = x => Math.pow(base(x), ex(x)); }
+        while (peek() === "%") { pos++; const inner = node; node = x => inner(x) / 100; }
+        return node;
     }
     function parseAtom() {
         const c = peek();
@@ -458,8 +461,9 @@ function compileExpr(str) {
             return () => v;
         }
         if (c !== undefined && /[a-z]/.test(c)) {
-            const m = /^[a-z]+[0-9]*/.exec(s.slice(pos));
-            const name = m[0];
+            const m = /^(log10|log2|asin|acos|atan|sqrt|sin|cos|tan|abs|exp|ln|log|pi|e|x)/.exec(s.slice(pos));
+            if (!m) throw new Error("unknown name");
+            const name = m[1];
             pos += name.length;
             if (name === "x") return x => x;
             if (name === "pi") return () => Math.PI;
@@ -588,6 +592,250 @@ function estimateLimit(fn, target, label) {
     steps.push({ t: "The two sides don't match", lines: ["A two-sided limit needs both sides to approach the same value."] });
     return { label: title, value: "Does not exist", extra: sides, steps };
 }
+/* ===== Matrix engine: validation, fractions, steps ===== */
+function toFrac(x) {
+    if (!isFinite(x)) return null;
+    if (Math.abs(x - Math.round(x)) < 1e-9) return { n: Math.round(x), d: 1 };
+    const sign = x < 0 ? -1 : 1, v = Math.abs(x);
+    let h0 = 0, h1 = 1, k0 = 1, k1 = 0, b = v;
+    for (let i = 0; i < 20; i++) {
+        const a = Math.floor(b);
+        const h2 = a * h1 + h0, k2 = a * k1 + k0;
+        h0 = h1; h1 = h2; k0 = k1; k1 = k2;
+        if (k1 > 10000) return null;
+        if (Math.abs(v - h1 / k1) < 1e-9 * Math.max(1, v)) return { n: sign * h1, d: k1 };
+        const f = b - a;
+        if (f < 1e-12) break;
+        b = 1 / f;
+    }
+    return null;
+}
+function fmtFrac(x) {
+    const f = toFrac(x);
+    if (!f) return formatNum(x);
+    return f.d === 1 ? String(f.n) : f.n + "/" + f.d;
+}
+function matLines(m) { return m.map(r => "[ " + r.map(fmtFrac).join("   ") + " ]"); }
+function cofactorOf(m, r, c) {
+    const rows = [0, 1, 2].filter(i => i !== r), cols = [0, 1, 2].filter(j => j !== c);
+    const md = m[rows[0]][cols[0]] * m[rows[1]][cols[1]] - m[rows[0]][cols[1]] * m[rows[1]][cols[0]];
+    return { minor: md, cof: ((r + c) % 2 === 0 ? 1 : -1) * md };
+}
+function detOf(m) {
+    if (m.length === 2) return m[0][0] * m[1][1] - m[0][1] * m[1][0];
+    return m[0][0] * cofactorOf(m, 0, 0).minor - m[0][1] * cofactorOf(m, 0, 1).minor + m[0][2] * cofactorOf(m, 0, 2).minor;
+}
+function detSteps(m) {
+    const p = fmtFrac, q = x => (x < 0 ? "(" + p(x) + ")" : p(x));
+    if (m.length === 2) {
+        const [a, b] = m[0], [c, d] = m[1];
+        return [{ t: "Use |A| = ad \u2212 bc", lines: ["|A| = (" + p(a) + " \u00D7 " + p(d) + ") \u2212 (" + p(b) + " \u00D7 " + p(c) + ")", "|A| = " + p(a * d) + " \u2212 " + q(b * c), "|A| = " + p(a * d - b * c)] }];
+    }
+    const mi = [0, 1, 2].map(j => cofactorOf(m, 0, j).minor);
+    const t = [m[0][0] * mi[0], -m[0][1] * mi[1], m[0][2] * mi[2]];
+    return [{ t: "Expand along the first row", lines: [
+            "|A| = a\u2081\u2081(a\u2082\u2082a\u2083\u2083 \u2212 a\u2082\u2083a\u2083\u2082) \u2212 a\u2081\u2082(a\u2082\u2081a\u2083\u2083 \u2212 a\u2082\u2083a\u2083\u2081) + a\u2081\u2083(a\u2082\u2081a\u2083\u2082 \u2212 a\u2082\u2082a\u2083\u2081)",
+            "Minors: " + mi.map(p).join(",  "),
+            "|A| = " + q(m[0][0]) + "\u00D7" + q(mi[0]) + " \u2212 " + q(m[0][1]) + "\u00D7" + q(mi[1]) + " + " + q(m[0][2]) + "\u00D7" + q(mi[2]),
+            "|A| = " + q(t[0]) + " + " + q(t[1]) + " + " + q(t[2]),
+            "|A| = " + p(t[0] + t[1] + t[2])
+        ] }];
+}
+function readMatrix(cells, n, name) {
+    const m = [];
+    for (let r = 0; r < n; r++) {
+        const row = [];
+        for (let c = 0; c < n; c++) {
+            const raw = cells[r * 3 + c];
+            const v = (raw === "" || raw === undefined) ? NaN : Number(raw);
+            if (!isFinite(v)) return { error: "Fill every box of Matrix " + name + " with a number. Use 0 for an empty space." };
+            row.push(v);
+        }
+        m.push(row);
+    }
+    return { m };
+}
+function runMatrix(op, cellsA, cellsB, n) {
+    const ra = readMatrix(cellsA, n, "A");
+    if (ra.error) return ra;
+    const A = ra.m;
+    const needB = op === "add" || op === "sub" || op === "multiply";
+    let B = null;
+    if (needB) { const rb = readMatrix(cellsB, n, "B"); if (rb.error) return rb; B = rb.m; }
+    const idx = (r, c) => "\u2081\u2082\u2083"[r] + "\u2081\u2082\u2083"[c];
+    if (op === "det") {
+        const d = detOf(A);
+        return { label: "Determinant", scalar: fmtFrac(d), steps: [{ t: "Matrix A", lines: matLines(A) }].concat(detSteps(A)) };
+    }
+    if (op === "transpose") {
+        const T = A[0].map((_, c) => A.map(r => r[c]));
+        return { label: "Transpose of A", matrix: T, steps: [{ t: "Matrix A", lines: matLines(A) }, { t: "Swap rows and columns", lines: ["Row 1 of A becomes column 1, row 2 becomes column 2" + (n === 3 ? ", row 3 becomes column 3" : "") + ".", ...matLines(T)] }] };
+    }
+    if (op === "add" || op === "sub") {
+        const sgn = op === "add" ? 1 : -1, sym = op === "add" ? "+" : "\u2212";
+        const R = A.map((row, i) => row.map((v, j) => v + sgn * B[i][j]));
+        const lines = [];
+        A.forEach((row, i) => row.forEach((v, j) => lines.push("c" + idx(i, j) + " = " + fmtFrac(v) + " " + sym + " " + (B[i][j] < 0 ? "(" + fmtFrac(B[i][j]) + ")" : fmtFrac(B[i][j])) + " = " + fmtFrac(R[i][j]))));
+        return { label: op === "add" ? "A + B" : "A \u2212 B", matrix: R, steps: [{ t: "Matrix A", lines: matLines(A) }, { t: "Matrix B", lines: matLines(B) }, { t: op === "add" ? "Add matching entries" : "Subtract matching entries", lines }] };
+    }
+    if (op === "multiply") {
+        const R = A.map((row, i) => B[0].map((_, j) => row.reduce((s, v, k) => s + v * B[k][j], 0)));
+        const lines = [];
+        A.forEach((row, i) => R[i].forEach((val, j) => {
+            const parts = row.map((v, k) => "(" + fmtFrac(v) + " \u00D7 " + fmtFrac(B[k][j]) + ")").join(" + ");
+            lines.push("c" + idx(i, j) + " = " + parts + " = " + fmtFrac(val));
+        }));
+        return { label: "A \u00D7 B", matrix: R, extra: "Order matters: A \u00D7 B is usually not equal to B \u00D7 A.", steps: [{ t: "Matrix A", lines: matLines(A) }, { t: "Matrix B", lines: matLines(B) }, { t: "Row of A \u00D7 column of B, added up", lines }] };
+    }
+    // inverse
+    const d = detOf(A);
+    const scale = Math.max(1, ...A.flat().map(Math.abs));
+    const steps = [{ t: "Matrix A", lines: matLines(A) }].concat(detSteps(A));
+    if (Math.abs(d) < 1e-10 * Math.pow(scale, n)) {
+        return { error: "The determinant is 0, so this matrix is singular and has no inverse." };
+    }
+    let inv;
+    if (n === 2) {
+        const [a, b] = A[0], [c, dd] = A[1];
+        inv = [[dd / d, -b / d], [-c / d, a / d]];
+        steps.push({ t: "Use A\u207B\u00B9 = (1/|A|) \u00D7 [[d, \u2212b], [\u2212c, a]]", lines: ["Swap a and d, change the signs of b and c:", ...matLines([[dd, -b], [-c, a]]), "Divide every entry by |A| = " + fmtFrac(d), ...matLines(inv)] });
+    }
+    else {
+        const C = [0, 1, 2].map(i => [0, 1, 2].map(j => cofactorOf(A, i, j).cof));
+        const adj = [0, 1, 2].map(i => [0, 1, 2].map(j => C[j][i]));
+        inv = adj.map(row => row.map(v => v / d));
+        steps.push({ t: "Find the cofactor matrix (minors with signs + \u2212 +, \u2212 + \u2212, + \u2212 +)", lines: matLines(C) });
+        steps.push({ t: "Transpose it to get the adjugate", lines: matLines(adj) });
+        steps.push({ t: "Divide every entry by |A| = " + fmtFrac(d), lines: matLines(inv) });
+    }
+    return { label: "Inverse of A", matrix: inv, extra: "Check: A \u00D7 A\u207B\u00B9 should give the identity matrix.", steps };
+}
+/* ===== Fix pack: scientific engine, molar mass, loans, tax ===== */
+function sciEvaluate(expr, deg) {
+    let s = expr;
+    const open = (s.match(/\(/g) || []).length, close = (s.match(/\)/g) || []).length;
+    if (open > close) s += ")".repeat(open - close);
+    try {
+        const v = compileExpr(s, deg)(0);
+        if (!isFinite(v)) return { error: Number.isNaN(v) ? "Math error" : "Cannot divide by zero" };
+        return { value: Math.abs(v) < 1e-12 ? 0 : parseFloat(v.toPrecision(12)) };
+    }
+    catch (e) { return { error: "Check the expression" }; }
+}
+const ATOMIC_MASS = { H: 1.008, He: 4.003, Li: 6.941, Be: 9.012, B: 10.811, C: 12.011, N: 14.007, O: 15.999, F: 18.998, Ne: 20.180, Na: 22.990, Mg: 24.305, Al: 26.982, Si: 28.086, P: 30.974, S: 32.065, Cl: 35.453, Ar: 39.948, K: 39.098, Ca: 40.078, Sc: 44.956, Ti: 47.867, V: 50.942, Cr: 51.996, Mn: 54.938, Fe: 55.845, Co: 58.933, Ni: 58.693, Cu: 63.546, Zn: 65.38, Ga: 69.723, Ge: 72.630, As: 74.922, Se: 78.971, Br: 79.904, Rb: 85.468, Sr: 87.62, Zr: 91.224, Mo: 95.95, Ag: 107.868, Cd: 112.414, Sn: 118.710, Sb: 121.760, I: 126.904, Cs: 132.905, Ba: 137.327, W: 183.84, Pt: 195.084, Au: 196.967, Hg: 200.592, Pb: 207.2, U: 238.029 };
+function parseFormulaPart(str) {
+    let pos = 0;
+    const readNum = () => { let d = ""; while (pos < str.length && /[0-9]/.test(str[pos])) d += str[pos++]; return d === "" ? 1 : parseInt(d, 10); };
+    function parseSeq(close) {
+        const counts = {};
+        while (pos < str.length) {
+            const c = str[pos];
+            if (c === "(" || c === "[") {
+                pos++;
+                const inner = parseSeq(c === "(" ? ")" : "]");
+                const k = readNum();
+                for (const el in inner) counts[el] = (counts[el] || 0) + inner[el] * k;
+            }
+            else if (c === ")" || c === "]") {
+                if (c !== close) throw new Error("The brackets don't match.");
+                pos++;
+                return counts;
+            }
+            else if (/[A-Z]/.test(c)) {
+                let sym = c;
+                pos++;
+                if (pos < str.length && /[a-z]/.test(str[pos])) sym += str[pos++];
+                if (!Object.prototype.hasOwnProperty.call(ATOMIC_MASS, sym)) throw new Error("I don't know the element '" + sym + "'. Each element starts with a capital letter and has at most one small letter, like NaCl or CH4.");
+                counts[sym] = (counts[sym] || 0) + readNum();
+            }
+            else if (/[a-z]/.test(c)) throw new Error("lowercase");
+            else throw new Error("Unexpected '" + c + "' in the formula.");
+        }
+        if (close) throw new Error("A bracket is not closed.");
+        return counts;
+    }
+    return parseSeq(null);
+}
+function molarMass(input) {
+    const raw = String(input).replace(/\s+/g, "").replace(/[\u2080-\u2089]/g, ch => String(ch.charCodeAt(0) - 0x2080));
+    if (!raw) return { error: "Type a chemical formula first, for example H2O or Ca(OH)2." };
+    if (!/^[A-Za-z0-9()\[\]\u00B7\u2022.*]+$/.test(raw)) return { error: "Use only element symbols, numbers and brackets, for example Ca(OH)2." };
+    try {
+        const total = {};
+        raw.split(/[\u00B7\u2022.*]/).forEach(part => {
+            if (!part) throw new Error("Check the formula for an extra dot.");
+            const m = /^(\d+)(.*)$/.exec(part);
+            const mult = m ? parseInt(m[1], 10) : 1, body = m ? m[2] : part;
+            if (!body) throw new Error("Check the formula.");
+            const c = parseFormulaPart(body);
+            for (const el in c) total[el] = (total[el] || 0) + c[el] * mult;
+        });
+        const els = Object.keys(total);
+        if (!els.length) return { error: "Type a chemical formula first, for example H2O or Ca(OH)2." };
+        const lines = els.map(el => el + ": " + total[el] + " \u00D7 " + ATOMIC_MASS[el] + " = " + (total[el] * ATOMIC_MASS[el]).toFixed(3));
+        const mass = els.reduce((s, el) => s + total[el] * ATOMIC_MASS[el], 0);
+        return { mass, text: (mass + 1e-9).toFixed(2), counts: els.map(el => el + ": " + total[el]), lines, formula: raw };
+    }
+    catch (e) {
+        if (e.message === "lowercase") {
+            const fixed = raw.replace(/(^|[0-9()\[\]])([a-z])/g, (m, a, b) => a + b.toUpperCase());
+            const tryFix = fixed !== raw ? molarMass(fixed) : null;
+            if (tryFix && !tryFix.error) return { error: "Element symbols start with a capital letter. Did you mean " + fixed + "?" };
+            return { error: "Element symbols start with a capital letter, like H2O or NaCl. Note that Co is cobalt but CO is carbon monoxide." };
+        }
+        return { error: e.message };
+    }
+}
+function monthlyPayment(P, annualPct, months) {
+    const r = annualPct / 100 / 12;
+    if (r === 0) return P / months;
+    const g = Math.pow(1 + r, months);
+    return (P * r * g) / (g - 1);
+}
+function ukIncomeTax(inc) {
+    const PA0 = 12570, BASIC = 37700, ADD = 125140;
+    const pa = inc > 100000 ? Math.max(0, PA0 - (inc - 100000) / 2) : PA0;
+    const taxable = Math.max(0, inc - pa);
+    const b1 = Math.min(taxable, BASIC), b2 = Math.max(0, Math.min(taxable, ADD) - BASIC), b3 = Math.max(0, taxable - ADD);
+    const t1 = b1 * 0.2, t2 = b2 * 0.4, t3 = b3 * 0.45, tax = t1 + t2 + t3;
+    const f = v => fmtMoney(v);
+    const steps = [];
+    steps.push({ t: "Personal Allowance", lines: [inc > 100000 ? "Income is over \u00A3100,000, so the allowance is reduced by \u00A31 for every \u00A32 over: \u00A3" + f(pa) : "\u00A312,570 is tax-free"] });
+    steps.push({ t: "Taxable income", lines: ["\u00A3" + f(inc) + " \u2212 \u00A3" + f(pa) + " = \u00A3" + f(taxable)] });
+    const bl = [];
+    if (b1 > 0) bl.push("Basic rate 20% on \u00A3" + f(b1) + " = \u00A3" + f(t1));
+    if (b2 > 0) bl.push("Higher rate 40% on \u00A3" + f(b2) + " = \u00A3" + f(t2));
+    if (b3 > 0) bl.push("Additional rate 45% on \u00A3" + f(b3) + " = \u00A3" + f(t3));
+    if (!bl.length) bl.push("No tax to pay, because your income is within the Personal Allowance.");
+    steps.push({ t: "Apply the tax bands", lines: bl });
+    steps.push({ t: "Total income tax", lines: ["\u00A3" + f(tax)] });
+    return { tax, steps };
+}
+function ngIncomeTax(gross, rent, otherDed) {
+    const rentRelief = Math.min(0.2 * rent, 500000);
+    const chargeable = Math.max(0, gross - otherDed - rentRelief);
+    const bands = [[800000, 0, "First \u20A6800,000"], [2200000, 0.15, "Next \u20A62,200,000"], [9000000, 0.18, "Next \u20A69,000,000"], [13000000, 0.21, "Next \u20A613,000,000"], [25000000, 0.23, "Next \u20A625,000,000"], [Infinity, 0.25, "Above \u20A650,000,000"]];
+    const f = v => fmtMoney(v);
+    let remaining = chargeable, tax = 0;
+    const bl = [];
+    for (let i = 0; i < bands.length && remaining > 0; i++) {
+        const slice = Math.min(remaining, bands[i][0]);
+        const t = slice * bands[i][1];
+        bl.push(bands[i][2] + " @ " + Math.round(bands[i][1] * 100) + "%: \u20A6" + f(slice) + " \u00D7 " + Math.round(bands[i][1] * 100) + "% = \u20A6" + f(t));
+        tax += t;
+        remaining -= slice;
+    }
+    if (!bl.length) bl.push("Nothing is chargeable, so no tax is due.");
+    const steps = [];
+    const dl = ["Gross income: \u20A6" + f(gross)];
+    if (otherDed > 0) dl.push("Less pension, NHF and other deductions: \u20A6" + f(otherDed));
+    if (rent > 0) dl.push("Less rent relief (20% of rent, maximum \u20A6500,000): \u20A6" + f(rentRelief));
+    dl.push("Chargeable income: \u20A6" + f(chargeable));
+    steps.push({ t: "Work out the chargeable income", lines: dl });
+    steps.push({ t: "Apply the 2026 tax bands", lines: bl });
+    steps.push({ t: "Total tax", lines: ["\u20A6" + f(tax)] });
+    return { tax, steps, chargeable, rentRelief };
+}
 /* ===== end helpers ===== */
 function QuadraticCalc() {
     const [a, setA] = useState("");
@@ -656,11 +904,15 @@ function PythagorasCalc() {
 }
 function StatisticsCalc() {
     const [nums, setNums] = useState("");
-    const [res, setRes] = useState(null);
+    const [res, setRes] = useState(null); const [err, setErr] = useState("");
     const calc = () => {
         const arr = nums.split(",").map(n => parseFloat(n.trim())).filter(n => !isNaN(n));
-        if (!arr.length)
+        if (!arr.length) {
+            setErr("Enter some numbers separated by commas, for example 4, 7, 2, 9, 4, 1.");
+            setRes(null);
             return;
+        }
+        setErr("");
         const sorted = [...arr].sort((a, b) => a - b);
         const mean = (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(4);
         const mid = Math.floor(sorted.length / 2);
@@ -668,7 +920,7 @@ function StatisticsCalc() {
         const freq = {};
         arr.forEach(n => freq[n] = (freq[n] || 0) + 1);
         const maxFreq = Math.max(...Object.values(freq));
-        const mode = Object.keys(freq).filter(k => freq[k] === maxFreq).join(", ");
+        const mode = maxFreq === 1 ? "No mode (no value repeats)" : Object.keys(freq).filter(k => freq[k] === maxFreq).join(", ");
         const range = (sorted[sorted.length - 1] - sorted[0]).toFixed(4);
         setRes({ mean, median, mode, range, count: arr.length });
     };
@@ -692,7 +944,8 @@ function StatisticsCalc() {
             React.createElement("br", null),
             "Range: ",
             React.createElement("strong", null, res.range)),
-        React.createElement(InfoPanel, { what: "Statistics is the science of collecting and interpreting data. Mean, median, mode, and range are the four basic measures every student needs -- used in science, business, WAEC, JAMB, and everyday decisions.", formula: "Mean = Sum of values / Count • Median = Middle value (when sorted) • Mode = Most frequently occurring value • Range = Largest − Smallest", example: "Data: 4, 7, 2, 9, 7, 3 •  • Sorted: 2, 3, 4, 7, 7, 9 • Mean = 32 / 6 = 5.33 • Median = (4+7) / 2 = 5.5 • Mode = 7 (appears twice) • Range = 9 − 2 = 7", faqs: [{ q: "When is median better than mean?", a: "When data has extreme outliers. For example, if most workers earn ₦100K but one earns ₦10M, the mean is misleading -- the median gives a better picture." }, { q: "Can there be no mode?", a: "Yes -- if every value appears exactly once, there is no mode. There can also be two modes (bimodal) if two values tie." }, { q: "What does range tell us?", a: "Range measures how spread out the data is. A large range means data is very spread; a small range means data is clustered close together." }] }));
+        err && React.createElement(ErrBox, { text: err }),
+    React.createElement(InfoPanel, { what: "Statistics is the science of collecting and interpreting data. Mean, median, mode, and range are the four basic measures every student needs -- used in science, business, WAEC, JAMB, and everyday decisions.", formula: "Mean = Sum of values / Count • Median = Middle value (when sorted) • Mode = Most frequently occurring value • Range = Largest − Smallest", example: "Data: 4, 7, 2, 9, 7, 3 •  • Sorted: 2, 3, 4, 7, 7, 9 • Mean = 32 / 6 = 5.33 • Median = (4+7) / 2 = 5.5 • Mode = 7 (appears twice) • Range = 9 − 2 = 7", faqs: [{ q: "When is median better than mean?", a: "When data has extreme outliers. For example, if most workers earn ₦100K but one earns ₦10M, the mean is misleading -- the median gives a better picture." }, { q: "Can there be no mode?", a: "Yes -- if every value appears exactly once, there is no mode. There can also be two modes (bimodal) if two values tie." }, { q: "What does range tell us?", a: "Range measures how spread out the data is. A large range means data is very spread; a small range means data is clustered close together." }] }));
 }
 function FractionCalc() {
     const [n1, setN1] = useState("");
@@ -755,9 +1008,20 @@ function FractionCalc() {
 }
 function PrimeCalc() {
     const [n, setN] = useState("");
-    const [res, setRes] = useState(null);
+    const [res, setRes] = useState(null); const [err, setErr] = useState("");
     const calc = () => {
-        const num = parseInt(n);
+        const num = Number(n);
+        if (n === "" || !Number.isInteger(num)) {
+            setErr("Enter a whole number, for example 17.");
+            setRes(null);
+            return;
+        }
+        if (Math.abs(num) > 1e12) {
+            setErr("Enter a number up to 1,000,000,000,000.");
+            setRes(null);
+            return;
+        }
+        setErr("");
         if (num < 2) {
             setRes({ prime: false, num });
             return;
@@ -780,7 +1044,8 @@ function PrimeCalc() {
             React.createElement("strong", null, res.num),
             " is ",
             res.prime ? "✅ a PRIME number!" : "❌ NOT a prime number."),
-        React.createElement(InfoPanel, { what: "A prime number is a whole number greater than 1 that can only be divided exactly by 1 and itself. Prime numbers are the building blocks of all whole numbers and are fundamental to cryptography, computer security, and number theory.", formula: "A number N is prime if it has no divisors between 2 and sqrt(N. •  • Check: divide N by every integer from 2 to sqrt(N. • If none divide evenly -> PRIME • If any divide evenly -> NOT prime", example: "Is 17 prime? •  • sqrt(17 ~ 4.1 -> check 2, 3, 4 • 17 / 2 = 8.5 ✗ • 17 / 3 = 5.67 ✗ • 17 / 4 = 4.25 ✗ • No exact divisor found -> 17 is PRIME ✅ •  • Is 15 prime? • 15 / 3 = 5 ✓ -> 15 is NOT prime ❌", faqs: [{ q: "What are the first 10 prime numbers?", a: "2, 3, 5, 7, 11, 13, 17, 19, 23, 29. Note: 1 is NOT a prime number." }, { q: "Why is 2 the only even prime?", a: "Because all other even numbers are divisible by 2, making them composite. 2 is the smallest and only even prime." }, { q: "Are prime numbers important in real life?", a: "Yes -- your phone uses prime numbers every time you send a message or make a payment online. Modern encryption (RSA) relies on the difficulty of factoring very large primes." }] }));
+        err && React.createElement(ErrBox, { text: err }),
+    React.createElement(InfoPanel, { what: "A prime number is a whole number greater than 1 that can only be divided exactly by 1 and itself. Prime numbers are the building blocks of all whole numbers and are fundamental to cryptography, computer security, and number theory.", formula: "A number N is prime if it has no divisors between 2 and sqrt(N. •  • Check: divide N by every integer from 2 to sqrt(N. • If none divide evenly -> PRIME • If any divide evenly -> NOT prime", example: "Is 17 prime? •  • sqrt(17 ~ 4.1 -> check 2, 3, 4 • 17 / 2 = 8.5 ✗ • 17 / 3 = 5.67 ✗ • 17 / 4 = 4.25 ✗ • No exact divisor found -> 17 is PRIME ✅ •  • Is 15 prime? • 15 / 3 = 5 ✓ -> 15 is NOT prime ❌", faqs: [{ q: "What are the first 10 prime numbers?", a: "2, 3, 5, 7, 11, 13, 17, 19, 23, 29. Note: 1 is NOT a prime number." }, { q: "Why is 2 the only even prime?", a: "Because all other even numbers are divisible by 2, making them composite. 2 is the smallest and only even prime." }, { q: "Are prime numbers important in real life?", a: "Yes -- your phone uses prime numbers every time you send a message or make a payment online. Modern encryption (RSA) relies on the difficulty of factoring very large primes." }] }));
 }
 function LCMHCFCalc() {
     const [nums, setNums] = useState("");
@@ -811,38 +1076,51 @@ function LCMHCFCalc() {
 function ScientificCalc() {
     const [display, setDisplay] = useState("0");
     const [expr, setExpr] = useState("");
+    const [deg, setDeg] = useState(true);
+    const [ans, setAns] = useState(null);
+    const OPS = ["+", "-", "\u00D7", "/", "^", "%"];
     const press = (val) => {
-        try {
-            if (val === "=") {
-                const result = eval(expr.replace(/x/g, "*").replace(/÷/g, "/").replace(/pi/g, Math.PI).replace(/sqrt\(/g, "Math.sqrt(").replace(/sin\(/g, "Math.sin(").replace(/cos\(/g, "Math.cos(").replace(/tan\(/g, "Math.tan(").replace(/log\(/g, "Math.log10(").replace(/ln\(/g, "Math.log("));
-                setDisplay(String(parseFloat(result.toFixed(8))));
-                setExpr("");
-            }
-            else if (val === "C") {
-                setDisplay("0");
-                setExpr("");
-            }
-            else if (val === "⌫") {
-                setExpr(e => e.slice(0, -1)) || setDisplay("0");
-            }
-            else {
-                setExpr(e => e + val);
-                setDisplay(expr + val);
-            }
-        }
-        catch (_a) {
-            setDisplay("Error");
+        if (val === "=") {
+            if (!expr) return;
+            const out = sciEvaluate(expr, deg);
+            if (out.error) { setDisplay(out.error); setExpr(""); return; }
+            setDisplay(String(out.value));
+            setAns(String(out.value));
             setExpr("");
+            return;
         }
+        if (val === "C") { setDisplay("0"); setExpr(""); setAns(null); return; }
+        if (val === "DEG" || val === "RAD") { setDeg(d => !d); return; }
+        if (val === "\u232B") {
+            const m = expr.match(/(sin\(|cos\(|tan\(|sqrt\(|ln\(|log\(|pi)$/);
+            const ne = m ? expr.slice(0, -m[0].length) : expr.slice(0, -1);
+            setExpr(ne);
+            setDisplay(ne || "0");
+            return;
+        }
+        if (val === "Ans") {
+            if (ans === null) return;
+            const ne = expr + (ans.startsWith("-") ? "(" + ans + ")" : ans);
+            setExpr(ne);
+            setDisplay(ne);
+            return;
+        }
+        let base = expr;
+        if (expr === "" && ans !== null && OPS.includes(val)) base = ans.startsWith("-") ? "(" + ans + ")" : ans;
+        const ne = base + val;
+        setExpr(ne);
+        setDisplay(ne);
     };
-    const btns = [["C", "⌫", "(", ")"], ["sin(", "cos(", "tan(", "sqrt(("], ["7", "8", "9", "/"], ["4", "5", "6", "x"], ["1", "2", "3", "-"], ["pi", "0", ".", "+"], ["%", "^", "ln(", "="]];
+    const btns = [["C", "\u232B", "(", ")"], ["sin(", "cos(", "tan(", "sqrt("], ["log(", "ln(", "pi", "e"], ["7", "8", "9", "/"], ["4", "5", "6", "\u00D7"], ["1", "2", "3", "-"], ["0", ".", "^", "+"], ["%", "Ans", deg ? "DEG" : "RAD", "="]];
     return React.createElement("div", null,
         React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83E\uDDEE Scientific Calculator"),
         React.createElement("div", { style: { background: "#1a1a2e", borderRadius: 12, padding: "12px 16px", marginBottom: 12, textAlign: "right" } },
-            React.createElement("div", { style: { color: "#888", fontSize: 13, minHeight: 20 } }, expr),
-            React.createElement("div", { style: { color: "white", fontSize: 28, fontWeight: 700, fontVariantNumeric: "tabular-nums" } }, display)),
-        btns.map((row, i) => React.createElement("div", { key: i, style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 6 } }, row.map(b => React.createElement("button", { key: b, onClick: () => press(b), style: { padding: "14px 0", background: b === "=" ? "#6c63ff" : b === "C" ? "#e74c3c" : ["⌫", "(", ")"].includes(b) ? "#444" : "#2a2a40", color: "white", border: "none", borderRadius: 8, fontSize: b.length > 2 ? 12 : 16, fontWeight: 600, cursor: "pointer" } }, b)))),
-        React.createElement(InfoPanel, { what: "A scientific calculator handles advanced operations beyond basic arithmetic -- trigonometric functions (sin, cos, tan), logarithms, square roots, exponents, and constants like pi. It follows standard order of operations (BODMAS), so multiplication and division happen before addition and subtraction, and content in brackets is evaluated first.", formula: "Order of operations (BODMAS): Brackets -> Orders (powers/roots) -> Division/Multiplication -> Addition/Subtraction •  • sin, cos, tan work in degrees for most exam-style problems •  • log( = log base 10 •  • ln( = natural log (base e)", example: "Calculate: sin(30) + sqrt(16) x 2 •  • sin(30) = 0.5 •  • sqrt(16) = 4 •  • 4 x 2 = 8 •  • 0.5 + 8 = 8.5", faqs: [{ q: "Does this calculator use degrees or radians for trig functions?", a: "Degrees -- this matches what's expected in most WAEC, JAMB and NECO exam questions." }, { q: "What's the difference between log( and ln(?", a: "log( is base-10 logarithm (common log), while ln( is the natural logarithm (base e ≈ 2.718). Both are used in different areas of maths and science." }, { q: "Why do I need to close every bracket I open?", a: "Every open bracket '(' must have a matching close bracket ')' or the calculator will show an error -- this is standard for all scientific calculators and programming languages." }] }));
+            React.createElement("div", { style: { color: "#888", fontSize: 13, minHeight: 20, wordBreak: "break-all" } }, expr),
+            React.createElement("div", { style: { color: "white", fontSize: 28, fontWeight: 700, fontVariantNumeric: "tabular-nums", wordBreak: "break-all" } }, display)),
+        React.createElement("div", { style: { fontSize: 12, color: "#888", marginBottom: 8 } }, deg ? "Angles are in degrees. Tap DEG to switch to radians." : "Angles are in radians. Tap RAD to switch to degrees."),
+        btns.map((row, i) => React.createElement("div", { key: i, style: { display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 6 } }, row.map(b => React.createElement("button", { key: b, onClick: () => press(b), style: { padding: "14px 0", background: b === "=" ? "#6c63ff" : b === "C" ? "#e74c3c" : (b === "DEG" || b === "RAD") ? "#0f766e" : ["\u232B", "(", ")"].includes(b) ? "#444" : "#2a2a40", color: "white", border: "none", borderRadius: 8, fontSize: b.length > 2 ? 12 : 16, fontWeight: 600, cursor: "pointer" } }, b)))),
+        
+React.createElement(InfoPanel, { what: "A scientific calculator handles advanced operations beyond basic arithmetic -- trigonometric functions (sin, cos, tan), logarithms, square roots, exponents, and constants like pi. It follows standard order of operations (BODMAS), so multiplication and division happen before addition and subtraction, and content in brackets is evaluated first.", formula: "Order of operations (BODMAS): Brackets -> Orders (powers/roots) -> Division/Multiplication -> Addition/Subtraction •  • sin, cos, tan work in degrees for most exam-style problems •  • log( = log base 10 •  • ln( = natural log (base e)", example: "Calculate: sin(30) + sqrt(16) x 2 •  • sin(30) = 0.5 •  • sqrt(16) = 4 •  • 4 x 2 = 8 •  • 0.5 + 8 = 8.5", faqs: [{ q: "Does this calculator use degrees or radians for trig functions?", a: "Degrees -- this matches what's expected in most WAEC, JAMB and NECO exam questions." }, { q: "What's the difference between log( and ln(?", a: "log( is base-10 logarithm (common log), while ln( is the natural logarithm (base e ≈ 2.718). Both are used in different areas of maths and science." }, { q: "Why do I need to close every bracket I open?", a: "Every open bracket '(' must have a matching close bracket ')' or the calculator will show an error -- this is standard for all scientific calculators and programming languages." }] }));
 }
 function OhmsLawCalc() {
     const [v, setV] = useState("");
@@ -1074,37 +1352,31 @@ function PressureCalc() {
         React.createElement(InfoPanel, { what: "Pressure is force per unit area. It explains why sharp knives cut better (smaller area = more pressure), how hydraulics lift cars, and why your ears pop on an aeroplane.", formula: "P = F / A •  • P = Pressure (Pascals, Pa) • F = Force (Newtons) • A = Area (m^2)", example: "Person weighing 600 N on one foot (area 0.01 m^2): •  • P = 600 / 0.01 = 60,000 Pa = 60 kPa", faqs: [{ q: "What is atmospheric pressure?", a: "~101,325 Pa at sea level. It is the weight of all air above you pressing down." }, { q: "Why do ears pop on a plane?", a: "Air pressure decreases at altitude. Your inner ear adjusts to equalise -- that adjustment causes the pop." }] }));
 }
 function MolarMassCalc() {
-    const elements = { "H": 1.008, "He": 4.003, "Li": 6.941, "Be": 9.012, "B": 10.811, "C": 12.011, "N": 14.007, "O": 15.999, "F": 18.998, "Ne": 20.180, "Na": 22.990, "Mg": 24.305, "Al": 26.982, "Si": 28.086, "P": 30.974, "S": 32.065, "Cl": 35.453, "Ar": 39.948, "K": 39.098, "Ca": 40.078, "Fe": 55.845, "Cu": 63.546, "Zn": 65.38, "Br": 79.904, "Ag": 107.868, "I": 126.904, "Au": 196.967, "Pb": 207.2 };
     const [formula, setFormula] = useState("");
     const [res, setRes] = useState(null);
+    const [err, setErr] = useState("");
     const calc = () => {
-        let mass = 0;
-        let valid = true;
-        const regex = /([A-Z][a-z]?)(\d*)/g;
-        let match;
-        while ((match = regex.exec(formula)) !== null) {
-            const el = match[1];
-            const count = parseInt(match[2]) || 1;
-            if (elements[el]) {
-                mass += elements[el] * count;
-            }
-            else {
-                valid = false;
-                break;
-            }
-        }
-        setRes(valid ? { mass: mass.toFixed(4) } : { error: true });
+        setErr("");
+        setRes(null);
+        const out = molarMass(formula);
+        if (out.error) { setErr(out.error); return; }
+        setRes(out);
     };
     return React.createElement("div", null,
         React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\u2697\uFE0F Molar Mass Calculator"),
-        React.createElement("p", { style: { fontSize: 13, color: "#888", marginBottom: 12 } }, "Enter chemical formula e.g. H2O, NaCl, C6H12O6"),
+        React.createElement("p", { style: { fontSize: 13, color: "#888", marginBottom: 12 } }, "Enter a chemical formula, e.g. H2O, NaCl, C6H12O6, Ca(OH)2, CuSO4.5H2O. Capital letters matter."),
         React.createElement(Field, { label: "Chemical Formula" },
-            React.createElement("input", { type: "text", value: formula, onChange: e => setFormula(e.target.value), placeholder: "e.g. H2O", style: iStyle })),
+            React.createElement("input", { type: "text", value: formula, onChange: e => setFormula(e.target.value), placeholder: "e.g. Ca(OH)2", style: iStyle })),
         React.createElement("button", { onClick: calc, style: btnStyle }, "Calculate"),
-        res && React.createElement("div", { className: "calc-result", style: resStyle },
-            res.error ? "Invalid formula -- check element symbols" : "Molar Mass = ",
-            React.createElement("strong", null, res.error ? "" : res.mass + " g/mol")),
-        React.createElement(InfoPanel, { what: "Molar mass is the mass of one mole of a substance in grams. It is calculated by adding the atomic masses of all atoms in the chemical formula. It is essential for converting between grams and moles in any chemical calculation.", formula: "Molar Mass = Σ (atomic mass x number of atoms) •  • Key atomic masses (g/mol): • H=1, C=12, N=14, O=16, Na=23, Cl=35.5, Fe=56", example: "H₂O (water): • 2(H) + 1(O) = 2(1) + 16 = 18 g/mol •  • H₂SO₄ (sulfuric acid): • 2(1) + 32 + 4(16) = 2+32+64 = 98 g/mol", faqs: [{ q: "What is a mole?", a: "A mole = 6.022 x 10^2^3 particles (Avogadro's number). It lets chemists count atoms by weighing them." }, { q: "How do I convert grams to moles?", a: "Moles = Mass (g) / Molar Mass (g/mol). E.g. 36g of H₂O = 36/18 = 2 moles." }] }));
+        err && React.createElement(ErrBox, { text: err }),
+        res && React.createElement(ResultCard, { label: "Molar mass of " + res.formula, value: res.text + " g/mol" }),
+        res && React.createElement(StepsBox, { steps: [
+                { t: "Count the atoms", lines: res.counts },
+                { t: "Multiply each by its atomic mass (g/mol)", lines: res.lines },
+                { t: "Add them up", lines: [res.mass.toFixed(3) + " g/mol"] },
+            ] }),
+        
+React.createElement(InfoPanel, { what: "Molar mass is the mass of one mole of a substance in grams. It is calculated by adding the atomic masses of all atoms in the chemical formula. It is essential for converting between grams and moles in any chemical calculation.", formula: "Molar Mass = Σ (atomic mass x number of atoms) •  • Key atomic masses (g/mol): • H=1, C=12, N=14, O=16, Na=23, Cl=35.5, Fe=56", example: "H₂O (water): • 2(H) + 1(O) = 2(1) + 16 = 18 g/mol •  • H₂SO₄ (sulfuric acid): • 2(1) + 32 + 4(16) = 2+32+64 = 98 g/mol", faqs: [{ q: "What is a mole?", a: "A mole = 6.022 × 10²³ particles (Avogadro's number). It lets chemists count atoms by weighing them." }, { q: "How do I convert grams to moles?", a: "Moles = Mass (g) / Molar Mass (g/mol). E.g. 36g of H₂O = 36/18 = 2 moles." }] }));
 }
 function MolarityCalc() {
     const [moles, setMoles] = useState("");
@@ -1199,18 +1471,25 @@ function IdealGasCalc() {
     const [v, setV] = useState("");
     const [n, setN] = useState("");
     const [t, setT] = useState("");
-    const [res, setRes] = useState(null);
+    const [res, setRes] = useState(null); const [err, setErr] = useState("");
     const R = 8.314;
     const calc = () => {
-        const pv = parseFloat(p), vv = parseFloat(v), nv = parseFloat(n), tv = parseFloat(t);
-        if (v && n && t)
-            setRes({ find: "Pressure", val: (nv * R * tv / vv).toFixed(4), unit: "Pa" });
-        else if (p && n && t)
-            setRes({ find: "Volume", val: (nv * R * tv / pv).toFixed(4), unit: "m^3" });
-        else if (p && v && t)
-            setRes({ find: "Moles", val: (pv * vv / (R * tv)).toFixed(4), unit: "mol" });
-        else if (p && v && n)
-            setRes({ find: "Temperature", val: (pv * vv / (nv * R)).toFixed(4), unit: "K" });
+        const vals = { P: p, V: v, n: n, T: t };
+        const blanks = Object.keys(vals).filter(k => vals[k].trim() === "");
+        if (blanks.length !== 1) { setErr("Fill in exactly three boxes and leave the one you want to find blank."); setRes(null); return; }
+        const nums = {};
+        for (const k of Object.keys(vals)) {
+            if (vals[k].trim() === "") continue;
+            const x = Number(vals[k]);
+            if (!(x > 0)) { setErr("Every value must be greater than 0. Temperature must be in kelvin."); setRes(null); return; }
+            nums[k] = x;
+        }
+        setErr("");
+        const pv = nums.P, vv = nums.V, nv = nums.n, tv = nums.T;
+        if (blanks[0] === "P") setRes({ find: "Pressure", val: (nv * R * tv / vv).toFixed(4), unit: "Pa" });
+        else if (blanks[0] === "V") setRes({ find: "Volume", val: (nv * R * tv / pv).toFixed(4), unit: "m^3" });
+        else if (blanks[0] === "n") setRes({ find: "Moles", val: (pv * vv / (R * tv)).toFixed(4), unit: "mol" });
+        else setRes({ find: "Temperature", val: (pv * vv / (nv * R)).toFixed(4), unit: "K" });
     };
     return React.createElement("div", null,
         React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83E\uDEE7 Ideal Gas Law"),
@@ -1231,7 +1510,8 @@ function IdealGasCalc() {
                 res.val,
                 " ",
                 res.unit)),
-        React.createElement(InfoPanel, { what: "The dilution calculator uses the C1V1 = C2V2 formula to find the volume or concentration needed when diluting a solution. Dilution means adding more solvent (usually water) to reduce the concentration of a solution. This formula is essential in chemistry labs and WAEC/JAMB practical questions.", formula: "C1V1 = C2V2\n\nC1 = initial concentration\nV1 = initial volume needed\nC2 = final (target) concentration\nV2 = final (total) volume\n\nRearranged:\nV1 = (C2 x V2) / C1\nC2 = (C1 x V1) / V2", example: "Dilute 2M HCl to 0.5M, final volume 100mL:\n\nC1V1 = C2V2\n2 x V1 = 0.5 x 100\nV1 = 50/2 = 25 mL\n\nMeasure 25mL of 2M HCl then add\nwater until total volume = 100mL", faqs: [{ q: "What does M mean in concentration?", a: "M stands for Molarity -- moles of solute per litre of solution. 1M = 1 mol/L. It is the standard unit of concentration in chemistry." }, { q: "Why is C1V1=C2V2 valid?", a: "When you dilute, the moles of solute stay constant -- only solvent increases. Since moles = concentration x volume, C1V1 = C2V2 always holds." }, { q: "What is the difference between dilution and concentration?", a: "Dilution reduces concentration by adding solvent. Concentration increases it by adding more solute or removing solvent. The same formula works for both." }] }));
+        err && React.createElement(ErrBox, { text: err }),
+        React.createElement(InfoPanel, { what: "The ideal gas law links the pressure, volume, amount and temperature of a gas: PV = nRT. Give any three values, leave the fourth blank, and the calculator finds it. Use SI units: pressure in pascals, volume in cubic metres, amount in moles and temperature in kelvin.", formula: "PV = nRT\n\nP = pressure (Pa)\nV = volume (m\u00B3)\nn = amount of gas (mol)\nR = 8.314 J/(mol\u00B7K)\nT = temperature (K)\n\nTemperature in kelvin: K = \u00B0C + 273.15\nVolume: 1 litre = 0.001 m\u00B3\nPressure: 1 atm = 101,325 Pa", example: "Find the pressure of 2 mol of gas in 0.05 m\u00B3 at 300 K:\n\nP = nRT / V\nP = (2 \u00D7 8.314 \u00D7 300) / 0.05\nP = 4988.4 / 0.05\nP = 99,768 Pa (about 0.98 atm)", faqs: [{ q: "Why must temperature be in kelvin?", a: "The law is built on absolute temperature, where 0 K is the lowest possible temperature. Using \u00B0C gives wrong answers. Add 273.15 to a Celsius temperature to get kelvin." }, { q: "When is a real gas not ideal?", a: "At high pressure or low temperature, gas molecules attract each other and take up space, so real gases drift from the ideal gas law. At normal room conditions it is very accurate for most gases." }] }));
 }
 function PercentCompCalc() {
     const [el, setEl] = useState("");
@@ -1266,7 +1546,7 @@ function PercentageCalc() { const [val, setVal] = useState(""); const [pct, setP
         " = ",
         React.createElement("strong", null, res)),
     React.createElement(InfoPanel, { what: "Percentage means 'per hundred' -- it expresses a number as a fraction of 100. Percentages are used everywhere: discounts, taxes, exam scores, interest rates, statistics, and nutrition labels.", formula: "Percentage of a value = (Value x Percentage) / 100 •  • To find what % A is of B: (A / B) x 100 • To find original value: Result / (Percentage / 100)", example: "15% of 200: • = (200 x 15) / 100 • = 3000 / 100 = 30 •  • What % is 45 of 180? • = (45 / 180) x 100 = 25%", faqs: [{ q: "How do I calculate percentage increase?", a: "% increase = ((New − Old) / Old) x 100. E.g. price goes from ₦500 to ₦600: (100/500)x100 = 20% increase." }, { q: "How do I reverse a percentage?", a: "To find original price before a 20% discount: divide the discounted price by 0.80 (i.e. 100%−20%). E.g. ₦400 / 0.80 = ₦500 original." }] })); }
-function AgeCalc() { const [dob, setDob] = useState(""); const [res, setRes] = useState(null); const calc = () => { const birth = new Date(dob); const today = new Date(); let y = today.getFullYear() - birth.getFullYear(); let m = today.getMonth() - birth.getMonth(); let d = today.getDate() - birth.getDate(); if (d < 0) {
+function AgeCalc() { const [dob, setDob] = useState(""); const [res, setRes] = useState(null); const [err, setErr] = useState(""); const calc = () => { const birth = parseLocalDate(dob); if (!birth) { setErr("Pick your date of birth."); setRes(null); return; } const endToday = new Date(); endToday.setHours(23, 59, 59, 999); if (birth > endToday) { setErr("That date is in the future."); setRes(null); return; } if (birth.getFullYear() < 1900) { setErr("Enter a date after 1900."); setRes(null); return; } setErr(""); const today = new Date(); let y = today.getFullYear() - birth.getFullYear(); let m = today.getMonth() - birth.getMonth(); let d = today.getDate() - birth.getDate(); if (d < 0) {
     m--;
     d += new Date(today.getFullYear(), today.getMonth(), 0).getDate();
 } if (m < 0) {
@@ -1284,8 +1564,9 @@ function AgeCalc() { const [dob, setDob] = useState(""); const [res, setRes] = u
         " months, ",
         React.createElement("strong", null, res.d),
         " days"),
+    err && React.createElement(ErrBox, { text: err }),
     React.createElement(InfoPanel, { what: "An age calculator computes your exact age in years, months, and days from your date of birth to today. It correctly handles varying month lengths and leap years.", formula: "Age = Today's Date − Date of Birth •  • Adjust months/days when subtraction goes negative.", example: "Born: March 15, 2000 | Today: July 5, 2026 •  • Years: 2026−2000 = 26 • Months: July(7) − March(3) = 4 • Days: 5 − 15 = negative -> borrow from months • Result: 26 years, 3 months, 20 days", faqs: [{ q: "Why does my age sometimes show one year less than expected?", a: "Because your birthday this year hasn't passed yet. If today is before your birthday month/day, you're still in the previous year of age." }, { q: "What is a leap year?", a: "A year divisible by 4 (e.g. 2000, 2004, 2024). February has 29 days instead of 28. This matters for birthdays on Feb 29!" }] })); }
-function LoanCalc() { const [p, setP] = useState(""); const [r, setR] = useState(""); const [y, setY] = useState(""); const [res, setRes] = useState(null); const calc = () => { const pr = parseFloat(p), rate = parseFloat(r) / 100 / 12, n = parseFloat(y) * 12; const m = (pr * rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1); setRes({ m: m.toFixed(2), t: (m * n).toFixed(2), i: (m * n - pr).toFixed(2) }); }; return React.createElement("div", null,
+function LoanCalc() { const [p, setP] = useState(""); const [r, setR] = useState(""); const [y, setY] = useState(""); const [res, setRes] = useState(null); const [err, setErr] = useState(""); const calc = () => { const pr = parseFloat(p), rv = parseFloat(r), yv = parseFloat(y); if (!(pr > 0 && pr <= 1e12)) { setErr("Enter a loan amount greater than 0."); setRes(null); return; } if (!(rv >= 0 && rv <= 100)) { setErr("Enter an annual rate between 0 and 100. Use 0 for an interest-free loan."); setRes(null); return; } if (!(yv > 0 && yv <= 100)) { setErr("Enter a term in years, greater than 0."); setRes(null); return; } setErr(""); const n = yv * 12; const m = monthlyPayment(pr, rv, n); setRes({ m: m.toFixed(2), t: (m * n).toFixed(2), i: (m * n - pr).toFixed(2) }); }; return React.createElement("div", null,
     React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83C\uDFE6 Loan Calculator"),
     React.createElement(Field, { label: "Loan Amount ($)" },
         React.createElement("input", { type: "number", value: p, onChange: e => setP(e.target.value), placeholder: "e.g. 10000", style: iStyle })),
@@ -1307,8 +1588,9 @@ function LoanCalc() { const [p, setP] = useState(""); const [r, setR] = useState
         React.createElement("strong", null,
             "$",
             res.i)),
+    err && React.createElement(ErrBox, { text: err }),
     React.createElement(InfoPanel, { what: "A loan calculator helps you understand how much you will pay each month and in total when you borrow money. Banks and lenders charge interest -- a percentage of the loan -- for letting you use their money. The monthly payment formula is called the EMI (Equated Monthly Instalment) formula.", formula: "M = P x [r(1+r)ⁿ] / [(1+r)ⁿ - 1] •  • M = monthly payment • P = principal (loan amount) • r = monthly interest rate (annual rate / 12) • n = total number of payments (years x 12)", example: "Loan: $10,000 | Rate: 12% p.a. | Term: 2 years •  • r = 12% / 12 = 1% = 0.01 • n = 2 x 12 = 24 months •  • M = 10000 x [0.01(1.01)^2⁴] / [(1.01)^2⁴ - 1] • M ~ $470.73/month •  • Total paid: $11,297.52 • Total interest: $1,297.52", faqs: [{ q: "What is a good interest rate for a loan?", a: "It depends on your country and bank. In Nigeria, personal loan rates range from 18-30% per year. Lower is better for the borrower." }, { q: "Does a longer term mean smaller payments?", a: "Yes, but you end up paying more total interest. A 5-year loan has smaller monthly payments than a 2-year loan, but costs more overall." }, { q: "What is the difference between simple and compound interest?", a: "Simple interest is calculated only on the principal. Compound interest is calculated on the principal plus accumulated interest. Most loans use compound interest." }] })); }
-function BMICalc() { const [w, setW] = useState(""); const [h, setH] = useState(""); const [res, setRes] = useState(null); const calc = () => { const bmi = (parseFloat(w) / Math.pow(parseFloat(h) / 100, 2)).toFixed(1); const cat = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal weight" : bmi < 30 ? "Overweight" : "Obese"; setRes({ bmi, cat }); }; return React.createElement("div", null,
+function BMICalc() { const [w, setW] = useState(""); const [h, setH] = useState(""); const [res, setRes] = useState(null); const [err, setErr] = useState(""); const calc = () => { const wv = parseFloat(w), hv = parseFloat(h); if (!(wv > 0 && wv < 700)) { setErr("Enter your weight in kg (greater than 0)."); setRes(null); return; } if (!(hv >= 30 && hv <= 272)) { setErr("Enter your height in cm, between 30 and 272."); setRes(null); return; } setErr(""); const bmi = (wv / Math.pow(hv / 100, 2)).toFixed(1); const cat = bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal weight" : bmi < 30 ? "Overweight" : "Obese"; setRes({ bmi, cat }); }; return React.createElement("div", null,
     React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83D\uDCAA BMI Calculator"),
     React.createElement(Field, { label: "Weight (kg)" },
         React.createElement("input", { type: "number", value: w, onChange: e => setW(e.target.value), placeholder: "e.g. 70", style: iStyle })),
@@ -1320,6 +1602,7 @@ function BMICalc() { const [w, setW] = useState(""); const [h, setH] = useState(
         React.createElement("strong", null, res.bmi),
         " -- ",
         res.cat),
+    err && React.createElement(ErrBox, { text: err }),
     React.createElement(InfoPanel, { what: "Body Mass Index (BMI) is a simple number calculated from your weight and height. It gives a general indication of whether you are underweight, healthy weight, overweight, or obese. It is widely used by health professionals as a quick screening tool, though it does not measure body fat directly.", formula: "BMI = weight (kg) / height^2 (m) •  • Categories: • • Below 18.5 -> Underweight • • 18.5 - 24.9 -> Normal weight • • 25.0 - 29.9 -> Overweight • • 30.0 and above -> Obese", example: "Weight: 70 kg | Height: 175 cm (1.75 m) •  • BMI = 70 / (1.75)^2 • BMI = 70 / 3.0625 • BMI = 22.9 -> Normal weight ✅", faqs: [{ q: "Is BMI accurate for everyone?", a: "BMI is a general guide. It may overestimate body fat in muscular people (like athletes) and underestimate it in older adults who have lost muscle. Always consult a doctor for a full health assessment." }, { q: "What BMI is considered healthy?", a: "A BMI between 18.5 and 24.9 is considered normal/healthy for most adults. However, healthy ranges can vary by ethnicity -- Asian populations may have higher health risks at lower BMI values." }, { q: "Does BMI account for muscle mass?", a: "No. BMI only uses weight and height, so a very muscular person may have a high BMI while being perfectly healthy. Body fat percentage is a more accurate measure." }] })); }
 function TempCalc() { const [val, setVal] = useState(""); const [from, setFrom] = useState("C"); const [res, setRes] = useState(null); const calc = () => { const v = parseFloat(val); let c, f, k; if (from === "C") {
     c = v;
@@ -1568,10 +1851,16 @@ function MortgageCalc() {
     const [down, setDown] = useState("");
     const [r, setR] = useState("");
     const [y, setY] = useState("");
-    const [res, setRes] = useState(null);
+    const [res, setRes] = useState(null); const [err, setErr] = useState("");
     const calc = () => {
-        const hv = parseFloat(home), dv = parseFloat(down), p = hv - dv, rate = parseFloat(r) / 100 / 12, n = parseFloat(y) * 12;
-        const m = (p * rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1);
+        const hv = parseFloat(home), dv = down === "" ? 0 : parseFloat(down), rv = parseFloat(r), yv = parseFloat(y);
+        if (!(hv > 0 && hv <= 1e12)) { setErr("Enter the home price (greater than 0)."); setRes(null); return; }
+        if (!(dv >= 0) || dv >= hv) { setErr("The down payment must be 0 or more, and less than the home price."); setRes(null); return; }
+        if (!(rv >= 0 && rv <= 100)) { setErr("Enter an annual rate between 0 and 100."); setRes(null); return; }
+        if (!(yv > 0 && yv <= 100)) { setErr("Enter a term in years, greater than 0."); setRes(null); return; }
+        setErr("");
+        const p = hv - dv, n = yv * 12;
+        const m = monthlyPayment(p, rv, n);
         const total = m * n;
         const interest = total - p;
         setRes({ m: m.toFixed(2), t: total.toFixed(2), i: interest.toFixed(2), p: p.toFixed(2), steps: [
@@ -1612,7 +1901,8 @@ function MortgageCalc() {
             React.createElement("div", { style: { marginTop: 10, background: "#f8f8ff", borderRadius: 12, padding: "12px 14px", border: "1px solid #e8e8f0" } },
                 React.createElement("div", { style: { fontSize: 12, fontWeight: 800, color: "#6c63ff", marginBottom: 8 } }, "\uD83D\uDCCB STEP-BY-STEP"),
                 res.steps.map((s, i) => React.createElement("div", { key: i, style: { fontSize: 13, lineHeight: 1.8, color: "#333" } }, s)))),
-        React.createElement(InfoPanel, { what: "A mortgage is a long-term loan used to buy property. You pay it back in fixed monthly instalments over many years. The monthly payment covers both the interest and a portion of the original loan (principal).", formula: "M = P x [r(1+r)ⁿ] / [(1+r)ⁿ - 1] •  • M = monthly payment, P = loan amount • r = monthly rate, n = total months", example: "Home: $200,000 | Down: $40,000 | Rate: 7% | 30 years •  • Loan = $160,000 | r = 7%/12 = 0.5833% • n = 360 months • M = $1,064.48/month • Total paid = $383,213 | Interest = $223,213", faqs: [{ q: "What is a down payment?", a: "The upfront amount you pay toward the home. The rest is the loan. A larger down payment means a smaller loan and lower monthly payments." }, { q: "Is a 30-year or 15-year mortgage better?", a: "15-year: higher monthly payments but much less total interest. 30-year: lower monthly payments but you pay nearly double the interest over time." }, { q: "What happens if I pay extra each month?", a: "Extra payments reduce the principal faster, which shortens your loan term and saves you significant interest over the life of the loan." }] }));
+        err && React.createElement(ErrBox, { text: err }),
+    React.createElement(InfoPanel, { what: "A mortgage is a long-term loan used to buy property. You pay it back in fixed monthly instalments over many years. The monthly payment covers both the interest and a portion of the original loan (principal).", formula: "M = P x [r(1+r)ⁿ] / [(1+r)ⁿ - 1] •  • M = monthly payment, P = loan amount • r = monthly rate, n = total months", example: "Home: $200,000 | Down: $40,000 | Rate: 7% | 30 years •  • Loan = $160,000 | r = 7%/12 = 0.5833% • n = 360 months • M = $1,064.48/month • Total paid = $383,213 | Interest = $223,213", faqs: [{ q: "What is a down payment?", a: "The upfront amount you pay toward the home. The rest is the loan. A larger down payment means a smaller loan and lower monthly payments." }, { q: "Is a 30-year or 15-year mortgage better?", a: "15-year: higher monthly payments but much less total interest. 30-year: lower monthly payments but you pay nearly double the interest over time." }, { q: "What happens if I pay extra each month?", a: "Extra payments reduce the principal faster, which shortens your loan term and saves you significant interest over the life of the loan." }] }));
 }
 function ProfitCalc() {
     const [cost, setCost] = useState("");
@@ -1720,20 +2010,24 @@ function EMICalc() {
     const [p, setP] = useState("");
     const [r, setR] = useState("");
     const [m, setM] = useState("");
-    const [res, setRes] = useState(null);
+    const [res, setRes] = useState(null); const [err, setErr] = useState("");
     const calc = () => {
         const P = parseFloat(p), annualRate = parseFloat(r), months = parseFloat(m);
+        if (!(P > 0 && P <= 1e12)) { setErr("Enter a loan amount greater than 0."); setRes(null); return; }
+        if (!(annualRate >= 0 && annualRate <= 100)) { setErr("Enter an annual rate between 0 and 100. Use 0 for an interest-free loan."); setRes(null); return; }
+        if (!(months > 0 && months <= 1200)) { setErr("Enter the number of months, greater than 0."); setRes(null); return; }
+        setErr("");
         const rate = annualRate / 100 / 12;
-        const emi = (P * rate * Math.pow(1 + rate, months)) / (Math.pow(1 + rate, months) - 1);
+        const emi = monthlyPayment(P, annualRate, months);
         const total = emi * months;
         const interest = total - P;
         setRes({ emi: emi.toFixed(2), total: total.toFixed(2), interest: interest.toFixed(2), steps: [
                 `Step 1: Principal (P) = ₦${P.toLocaleString()}`,
                 `Step 2: Monthly interest rate (r) = ${annualRate}% / 12 = ${(rate * 100).toFixed(4)}%`,
                 `Step 3: Number of months (n) = ${months}`,
-                `Step 4: EMI = P x r x (1+r)ⁿ / [(1+r)ⁿ − 1]`,
-                `Step 5: (1+r)ⁿ = (${(1 + rate).toFixed(6)})^${months} = ${Math.pow(1 + rate, months).toFixed(6)}`,
-                `Step 6: EMI = ₦${P.toLocaleString()} x ${(rate).toFixed(6)} x ${Math.pow(1 + rate, months).toFixed(4)} / ${(Math.pow(1 + rate, months) - 1).toFixed(4)}`,
+                rate === 0 ? `Step 4: The interest rate is 0%, so EMI = P ÷ n` : `Step 4: EMI = P x r x (1+r)ⁿ / [(1+r)ⁿ − 1]`,
+                rate === 0 ? `Step 5: EMI = ₦${P.toLocaleString()} ÷ ${months}` : `Step 5: (1+r)ⁿ = (${(1 + rate).toFixed(6)})^${months} = ${Math.pow(1 + rate, months).toFixed(6)}`,
+                rate === 0 ? `Step 6: EMI = ₦${emi.toFixed(2)}` : `Step 6: EMI = ₦${P.toLocaleString()} x ${(rate).toFixed(6)} x ${Math.pow(1 + rate, months).toFixed(4)} / ${(Math.pow(1 + rate, months) - 1).toFixed(4)}`,
                 `Step 7: EMI = ₦${emi.toFixed(2)} per month`,
                 `Step 8: Total amount paid = ₦${emi.toFixed(2)} x ${months} = ₦${total.toFixed(2)}`,
                 `Step 9: Total interest = ₦${total.toFixed(2)} − ₦${P.toLocaleString()} = ₦${interest.toFixed(2)}`,
@@ -1767,89 +2061,57 @@ function EMICalc() {
             React.createElement("div", { style: { marginTop: 10, background: "#f8f8ff", borderRadius: 12, padding: "12px 14px", border: "1px solid #e8e8f0" } },
                 React.createElement("div", { style: { fontSize: 12, fontWeight: 800, color: "#6c63ff", marginBottom: 8 } }, "\uD83D\uDCCB STEP-BY-STEP WORKING"),
                 res.steps.map((s, i) => React.createElement("div", { key: i, style: { fontSize: 13, lineHeight: 1.9, color: "#333" } }, s)))),
-        React.createElement(InfoPanel, { what: "EMI (Equated Monthly Instalment) is the fixed monthly amount you pay to repay a loan. It includes both the principal repayment and the interest. EMI calculators are essential for planning bank loans, car loans, and personal loans -- especially common in Nigeria, India, and other markets.", formula: "EMI = P x r x (1+r)ⁿ / [(1+r)ⁿ − 1] •  • P = Principal loan amount • r = Monthly interest rate (Annual rate / 12 / 100) • n = Loan duration in months", example: "Loan: ₦1,000,000 | Rate: 24% p.a. | 12 months •  • r = 24 / 12 / 100 = 0.02 • n = 12 •  • EMI = ₦1,000,000 x 0.02 x (1.02)¹^2 / [(1.02)¹^2 − 1] • EMI ~ ₦94,560/month •  • Total paid: ₦1,134,720 | Interest: ₦134,720", faqs: [{ q: "What is the difference between EMI and a regular loan payment?", a: "They are the same thing -- EMI is the common term in Nigerian and Asian banking. It describes a fixed monthly payment that covers both interest and principal." }, { q: "Can I pay off my EMI loan early?", a: "Yes, most banks allow early repayment, but some charge a prepayment penalty. Always confirm with your bank before paying ahead." }, { q: "Does a longer tenure mean a smaller EMI?", a: "Yes, but you pay more total interest. A ₦500,000 loan at 24% over 12 months vs 24 months: EMI drops but interest nearly doubles." }] }));
+        err && React.createElement(ErrBox, { text: err }),
+    React.createElement(InfoPanel, { what: "EMI (Equated Monthly Instalment) is the fixed monthly amount you pay to repay a loan. It includes both the principal repayment and the interest. EMI calculators are essential for planning bank loans, car loans, and personal loans -- especially common in Nigeria, India, and other markets.", formula: "EMI = P x r x (1+r)ⁿ / [(1+r)ⁿ − 1] •  • P = Principal loan amount • r = Monthly interest rate (Annual rate / 12 / 100) • n = Loan duration in months", example: "Loan: ₦1,000,000 | Rate: 24% p.a. | 12 months •  • r = 24 / 12 / 100 = 0.02 • n = 12 •  • EMI = ₦1,000,000 x 0.02 x (1.02)¹^2 / [(1.02)¹^2 − 1] • EMI ~ ₦94,560/month •  • Total paid: ₦1,134,720 | Interest: ₦134,720", faqs: [{ q: "What is the difference between EMI and a regular loan payment?", a: "They are the same thing -- EMI is the common term in Nigerian and Asian banking. It describes a fixed monthly payment that covers both interest and principal." }, { q: "Can I pay off my EMI loan early?", a: "Yes, most banks allow early repayment, but some charge a prepayment penalty. Always confirm with your bank before paying ahead." }, { q: "Does a longer tenure mean a smaller EMI?", a: "Yes, but you pay more total interest. A ₦500,000 loan at 24% over 12 months vs 24 months: EMI drops but interest nearly doubles." }] }));
 }
 function TaxCalc() {
     const [income, setIncome] = useState("");
     const [country, setCountry] = useState("nigeria");
+    const [rent, setRent] = useState("");
+    const [ded, setDed] = useState("");
     const [res, setRes] = useState(null);
+    const [err, setErr] = useState("");
     const calc = () => {
+        setErr("");
+        setRes(null);
         const inc = parseFloat(income);
-        let tax = 0, steps = [], brackets = [];
+        if (!(inc > 0)) { setErr("Enter your annual income (greater than 0)."); return; }
+        if (inc > 1e12) { setErr("That income is too large. Enter a smaller amount."); return; }
         if (country === "nigeria") {
-            brackets = [{ limit: 300000, rate: 7 }, { limit: 300000, rate: 11 }, { limit: 500000, rate: 15 }, { limit: 500000, rate: 19 }, { limit: 1600000, rate: 21 }, { limit: Infinity, rate: 24 }];
-            steps.push(`Nigerian PAYE Tax Calculation for annual income of ₦${inc.toLocaleString()}`);
-            steps.push(`First ₦300,000 @ 7% = ₦${Math.min(inc, 300000) * 0.07 <= 0 ? 0 : (Math.min(inc, 300000) * 0.07).toFixed(2)}`);
-            let remaining = inc, b = 0;
-            const limits = [300000, 300000, 500000, 500000, 1600000, Infinity];
-            const rates = [0.07, 0.11, 0.15, 0.19, 0.21, 0.24];
-            const labels = ["First ₦300,000", "Next ₦300,000", "Next ₦500,000", "Next ₦500,000", "Next ₦1,600,000", "Above ₦3,200,000"];
-            tax = 0;
-            for (let i = 0; i < limits.length && remaining > 0; i++) {
-                const taxable = Math.min(remaining, limits[i] === Infinity ? remaining : limits[i]);
-                const t = taxable * rates[i];
-                if (taxable > 0) {
-                    steps.push(`${labels[i]} @ ${rates[i] * 100}% = ₦${t.toFixed(2)}`);
-                    tax += t;
-                }
-                remaining -= taxable;
-            }
+            const rv = rent === "" ? 0 : parseFloat(rent), dv = ded === "" ? 0 : parseFloat(ded);
+            if (!(rv >= 0) || !(dv >= 0)) { setErr("Rent and deductions must be 0 or more."); return; }
+            if (dv > inc) { setErr("Your deductions can't be more than your income."); return; }
+            const out = ngIncomeTax(inc, rv, dv);
+            setRes({ sym: "\u20A6", tax: out.tax, net: inc - out.tax - dv, rate: (out.tax / inc) * 100, steps: out.steps, note: "Based on the Nigeria Tax Act 2025 bands in force from 1 January 2026. Reliefs are simplified, so confirm with the Nigeria Revenue Service or a tax adviser." });
         }
         else {
-            const personal = 12570, basic = 50270;
-            steps.push(`UK Income Tax for £${inc.toLocaleString()}`);
-            if (inc <= personal) {
-                tax = 0;
-                steps.push(`Income £${inc.toLocaleString()} is within Personal Allowance (£12,570) -> Tax = £0`);
-            }
-            else if (inc <= basic) {
-                const t = (inc - personal) * 0.20;
-                tax = t;
-                steps.push(`Taxable income = £${inc.toLocaleString()} − £12,570 = £${(inc - personal).toLocaleString()}`);
-                steps.push(`Basic rate 20%: £${(inc - personal).toLocaleString()} x 0.20 = £${t.toFixed(2)}`);
-            }
-            else {
-                const basic_tax = (basic - personal) * 0.20;
-                const higher_tax = (inc - basic) * 0.40;
-                tax = basic_tax + higher_tax;
-                steps.push(`Basic rate (20%) on £${(basic - personal).toLocaleString()} = £${basic_tax.toFixed(2)}`);
-                steps.push(`Higher rate (40%) on £${(inc - basic).toLocaleString()} = £${higher_tax.toFixed(2)}`);
-            }
+            const out = ukIncomeTax(inc);
+            setRes({ sym: "\u00A3", tax: out.tax, net: inc - out.tax, rate: (out.tax / inc) * 100, steps: out.steps, note: "England, Wales and Northern Ireland, 2026/27. Income tax only, with no National Insurance. Scotland has different bands." });
         }
-        const net = inc - tax;
-        steps.push(`─────────────────`);
-        steps.push(`Total Tax = ${country === "nigeria" ? "₦" : "£"}${tax.toFixed(2)}`);
-        steps.push(`Net Income (take-home) = ${country === "nigeria" ? "₦" : "£"}${net.toFixed(2)}`);
-        steps.push(`Effective Tax Rate = ${((tax / inc) * 100).toFixed(1)}%`);
-        setRes({ tax: tax.toFixed(2), net: net.toFixed(2), rate: ((tax / inc) * 100).toFixed(1), steps, sym: country === "nigeria" ? "₦" : "£" });
     };
     return React.createElement("div", null,
         React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83E\uDDFE Tax Calculator"),
-        React.createElement(Field, { label: "Annual Income" },
-            React.createElement("input", { type: "number", value: income, onChange: e => setIncome(e.target.value), placeholder: "e.g. 2400000", style: iStyle })),
+        React.createElement(Field, { label: "Annual Income (before tax)" },
+            React.createElement("input", { type: "number", value: income, onChange: e => setIncome(e.target.value), placeholder: "e.g. 5000000", style: iStyle })),
         React.createElement(Field, { label: "Tax System" },
-            React.createElement("select", { value: country, onChange: e => setCountry(e.target.value), style: iStyle },
-                React.createElement("option", { value: "nigeria" }, "Nigeria (PAYE)"),
-                React.createElement("option", { value: "uk" }, "UK (Income Tax)"))),
+            React.createElement("select", { value: country, onChange: e => { setCountry(e.target.value); setRes(null); setErr(""); }, style: iStyle },
+                React.createElement("option", { value: "nigeria" }, "Nigeria (PAYE, 2026 rules)"),
+                React.createElement("option", { value: "uk" }, "UK (Income Tax, 2026/27)"))),
+        country === "nigeria" && React.createElement(Field, { label: "Annual rent you pay (optional, for rent relief)" },
+            React.createElement("input", { type: "number", value: rent, onChange: e => setRent(e.target.value), placeholder: "e.g. 1200000", style: iStyle })),
+        country === "nigeria" && React.createElement(Field, { label: "Pension, NHF and other yearly deductions (optional)" },
+            React.createElement("input", { type: "number", value: ded, onChange: e => setDed(e.target.value), placeholder: "e.g. 400000", style: iStyle })),
         React.createElement("button", { onClick: calc, style: btnStyle }, "Calculate Tax"),
-        res && React.createElement("div", null,
-            React.createElement("div", { className: "calc-result", style: resStyle },
-                "Tax: ",
-                React.createElement("strong", null,
-                    res.sym,
-                    res.tax),
-                " | Take-home: ",
-                React.createElement("strong", null,
-                    res.sym,
-                    res.net),
-                " | Effective Rate: ",
-                React.createElement("strong", null,
-                    res.rate,
-                    "%")),
-            React.createElement("div", { style: { marginTop: 10, background: "#f8f8ff", borderRadius: 12, padding: "12px 14px", border: "1px solid #e8e8f0" } },
-                React.createElement("div", { style: { fontSize: 12, fontWeight: 800, color: "#6c63ff", marginBottom: 8 } }, "\uD83D\uDCCB STEP-BY-STEP TAX BREAKDOWN"),
-                res.steps.map((s, i) => React.createElement("div", { key: i, style: { fontSize: 13, lineHeight: 1.9, color: s.startsWith("─") ? "#ccc" : "#333", borderTop: s.startsWith("─") ? "1px solid #e8e8f0" : "none", marginTop: s.startsWith("─") ? 8 : 0 } }, s.startsWith("─") ? "" : s)))),
-        React.createElement(InfoPanel, { what: "Income tax is money paid to the government from your earnings. In Nigeria, the Pay As You Earn (PAYE) system uses progressive tax brackets -- you pay a lower rate on the first portion of income and higher rates on higher portions. You never pay the highest rate on your entire income.", formula: "Nigeria PAYE Brackets: • First ₦300,000 -> 7% • Next ₦300,000 -> 11% • Next ₦500,000 -> 15% • Next ₦500,000 -> 19% • Next ₦1,600,000 -> 21% • Above ₦3,200,000 -> 24%", example: "Annual income: ₦1,200,000 •  • First ₦300,000 @ 7% = ₦21,000 • Next ₦300,000 @ 11% = ₦33,000 • Next ₦500,000 @ 15% = ₦75,000 • Remaining ₦100,000 @ 19% = ₦19,000 •  • Total tax = ₦148,000 • Net income = ₦1,052,000 • Effective rate = 12.3%", faqs: [{ q: "What is the difference between tax rate and effective rate?", a: "Tax rate is the rate applied to each bracket. Effective rate is total tax / total income. Your effective rate is always lower than your top bracket rate." }, { q: "Do I pay tax on my full salary in Nigeria?", a: "A small portion of your income (₦200,000 or 1% of gross income) is exempt as a Consolidated Relief Allowance before PAYE is applied." }, { q: "What is PAYE?", a: "Pay As You Earn -- a system where your employer deducts income tax from your salary each month and remits it to FIRS on your behalf." }] }));
+        err && React.createElement(ErrBox, { text: err }),
+        res && React.createElement(ResultCard, { label: "Income tax", value: res.sym + fmtMoney(res.tax), extra: "Take-home: " + res.sym + fmtMoney(res.net) + "  \u00B7  Effective rate: " + res.rate.toFixed(1) + "%" }),
+        res && React.createElement(NoticeBox, { text: res.note }),
+        res && React.createElement(StepsBox, { steps: res.steps }),
+        React.createElement(InfoPanel, { what: "Income tax is money paid to the government from your earnings. Both systems here are progressive: each slice of income is taxed at its own rate, so you never pay the top rate on all of your income. The Nigeria option follows the Nigeria Tax Act 2025 (in force from 1 January 2026), and the UK option covers England, Wales and Northern Ireland.", formula: "Nigeria (2026): First \u20A6800,000 \u2192 0% \u2022 Next \u20A62.2m \u2192 15% \u2022 Next \u20A69m \u2192 18% \u2022 Next \u20A613m \u2192 21% \u2022 Next \u20A625m \u2192 23% \u2022 Above \u20A650m \u2192 25%\nChargeable income = income \u2212 pension/NHF \u2212 rent relief (20% of rent, max \u20A6500,000)\n\nUK (2026/27): \u00A312,570 tax-free \u2192 20% to \u00A350,270 \u2192 40% to \u00A3125,140 \u2192 45% above\nThe allowance shrinks by \u00A31 for every \u00A32 of income over \u00A3100,000.", example: "Nigeria: income \u20A65,000,000, rent \u20A61,200,000, no other deductions\nRent relief = 20% \u00D7 \u20A61,200,000 = \u20A6240,000\nChargeable = \u20A64,760,000\nFirst \u20A6800,000 @ 0% = \u20A60\nNext \u20A62,200,000 @ 15% = \u20A6330,000\nRemaining \u20A61,760,000 @ 18% = \u20A6316,800\nTotal tax = \u20A6646,800 (about 12.9% of income)\n\nUK: income \u00A3150,000\nAllowance = \u00A30 (fully withdrawn)\n\u00A337,700 @ 20% = \u00A37,540\n\u00A387,440 @ 40% = \u00A334,976\n\u00A324,860 @ 45% = \u00A311,187\nTotal tax = \u00A353,703", faqs: [
+                { q: "What happened to the Consolidated Relief Allowance in Nigeria?", a: "It was removed when the new tax law took effect on 1 January 2026. Rent relief replaced it: you can deduct the lower of 20% of your annual rent or \u20A6500,000." },
+                { q: "What is the difference between tax rate and effective rate?", a: "The tax rate is what you pay on a slice of income. The effective rate is your total tax divided by your total income, so it is always lower than the top rate you reach." },
+                { q: "Does the UK result include National Insurance?", a: "No. It shows income tax only. National Insurance is separate. Scotland also has its own income tax bands, so this tool does not apply to Scottish taxpayers." },
+                { q: "Is this exact?", a: "It is an estimate. Real payslips can include other reliefs, allowances and rules, so confirm important figures with a tax professional or the tax authority." }
+            ] }));
 }
 function RetirementCalc() {
     const [current, setCurrent] = useState("");
@@ -2012,29 +2274,29 @@ function AreaCalc() { const [val, setVal] = useState(""); const [from, setFrom] 
         React.createElement("strong", null, res.ha)),
     React.createElement(InfoPanel, { what: "Area measures the size of a two-dimensional surface. Different units are used for different scales -- m^2 for rooms and buildings, hectares and acres for land, km^2 for countries and regions. Nigeria uses both hectares (official) and acres (common in real estate).", formula: "1 hectare = 10,000 m^2\n1 acre = 4,046.86 m^2\n1 km^2 = 1,000,000 m^2\n1 ft^2 = 0.0929 m^2\n\n1 hectare = 2.471 acres\n1 acre = 0.4047 hectares", example: "Convert 5 acres to hectares:\n5 x 0.4047 = 2.024 hectares\n\nConvert 200 m^2 to ft^2 (apartment size):\n200 / 0.0929 = 2,153 ft^2\n\nNigeria land tip:\n1 plot = 648 m^2 (standard)\n1 acre ~ 6 plots\n1 hectare ~ 15 plots", faqs: [{ q: "How big is a hectare?", a: "A hectare is 10,000 m^2 -- roughly the size of a standard football pitch (which is about 7,140 m^2). One hectare = 2.471 acres." }, { q: "What is the difference between acres and hectares?", a: "Both measure land area. Hectares are metric (used internationally and officially in Nigeria). Acres are imperial (still widely used in Nigerian real estate, UK and USA). 1 hectare = 2.471 acres." }, { q: "How many plots make an acre in Nigeria?", a: "In Nigeria, 1 plot is typically 60x120 feet = 648 m^2. There are approximately 6.25 plots in 1 acre, and about 15.5 plots in 1 hectare." }] })); }
 const CURRENCY_INFO = {
-    USD: { name: "US Dollar", country: "United States", sign: "$" },
-    EUR: { name: "Euro", country: "Eurozone (Germany, France, Italy, Spain and others)", sign: "\u20AC" },
-    GBP: { name: "British Pound", country: "United Kingdom", sign: "\u00A3" },
-    NGN: { name: "Nigerian Naira", country: "Nigeria", sign: "\u20A6" },
-    GHS: { name: "Ghanaian Cedi", country: "Ghana", sign: "GH\u20B5" },
-    KES: { name: "Kenyan Shilling", country: "Kenya", sign: "KSh" },
-    ZAR: { name: "South African Rand", country: "South Africa", sign: "R" },
-    INR: { name: "Indian Rupee", country: "India", sign: "\u20B9" },
-    CNY: { name: "Chinese Yuan", country: "China", sign: "\u00A5" },
-    JPY: { name: "Japanese Yen", country: "Japan", sign: "\u00A5" },
-    AED: { name: "UAE Dirham", country: "United Arab Emirates", sign: "AED" },
-    CAD: { name: "Canadian Dollar", country: "Canada", sign: "$" },
-    AUD: { name: "Australian Dollar", country: "Australia", sign: "$" },
-    CHF: { name: "Swiss Franc", country: "Switzerland", sign: "CHF" },
-    BRL: { name: "Brazilian Real", country: "Brazil", sign: "R$" },
-    MXN: { name: "Mexican Peso", country: "Mexico", sign: "$" },
-    EGP: { name: "Egyptian Pound", country: "Egypt", sign: "E\u00A3" },
-    TZS: { name: "Tanzanian Shilling", country: "Tanzania", sign: "TSh" },
-    UGX: { name: "Ugandan Shilling", country: "Uganda", sign: "USh" },
-    XOF: { name: "West African CFA Franc", country: "Benin, Burkina Faso, C\u00F4te d'Ivoire, Guinea-Bissau, Mali, Niger, Senegal, Togo", sign: "CFA" },
+    USD: { short: "USA", cur: "Dollar", name: "US Dollar", country: "United States", sign: "$" },
+    EUR: { short: "Eurozone", cur: "Euro", name: "Euro", country: "Eurozone (Germany, France, Italy, Spain and others)", sign: "\u20AC" },
+    GBP: { short: "UK", cur: "Pound", name: "British Pound", country: "United Kingdom", sign: "\u00A3" },
+    NGN: { short: "Nigeria", cur: "Naira", name: "Nigerian Naira", country: "Nigeria", sign: "\u20A6" },
+    GHS: { short: "Ghana", cur: "Cedi", name: "Ghanaian Cedi", country: "Ghana", sign: "GH\u20B5" },
+    KES: { short: "Kenya", cur: "Shilling", name: "Kenyan Shilling", country: "Kenya", sign: "KSh" },
+    ZAR: { short: "South Africa", cur: "Rand", name: "South African Rand", country: "South Africa", sign: "R" },
+    INR: { short: "India", cur: "Rupee", name: "Indian Rupee", country: "India", sign: "\u20B9" },
+    CNY: { short: "China", cur: "Yuan", name: "Chinese Yuan", country: "China", sign: "\u00A5" },
+    JPY: { short: "Japan", cur: "Yen", name: "Japanese Yen", country: "Japan", sign: "\u00A5" },
+    AED: { short: "UAE", cur: "Dirham", name: "UAE Dirham", country: "United Arab Emirates", sign: "AED" },
+    CAD: { short: "Canada", cur: "Dollar", name: "Canadian Dollar", country: "Canada", sign: "$" },
+    AUD: { short: "Australia", cur: "Dollar", name: "Australian Dollar", country: "Australia", sign: "$" },
+    CHF: { short: "Switzerland", cur: "Franc", name: "Swiss Franc", country: "Switzerland", sign: "CHF" },
+    BRL: { short: "Brazil", cur: "Real", name: "Brazilian Real", country: "Brazil", sign: "R$" },
+    MXN: { short: "Mexico", cur: "Peso", name: "Mexican Peso", country: "Mexico", sign: "$" },
+    EGP: { short: "Egypt", cur: "Pound", name: "Egyptian Pound", country: "Egypt", sign: "E\u00A3" },
+    TZS: { short: "Tanzania", cur: "Shilling", name: "Tanzanian Shilling", country: "Tanzania", sign: "TSh" },
+    UGX: { short: "Uganda", cur: "Shilling", name: "Ugandan Shilling", country: "Uganda", sign: "USh" },
+    XOF: { short: "West Africa", cur: "CFA Franc", name: "West African CFA Franc", country: "Benin, Burkina Faso, C\u00F4te d'Ivoire, Guinea-Bissau, Mali, Niger, Senegal, Togo", sign: "CFA" },
 };
-const CURRENCY_CODES = Object.keys(CURRENCY_INFO);
-function currencyLabel(c) { const i = CURRENCY_INFO[c]; return i.name + " (" + c + ") " + i.sign + " \u2013 " + i.country; }
+const CURRENCY_CODES = Object.keys(CURRENCY_INFO).sort((a, b) => CURRENCY_INFO[a].short.localeCompare(CURRENCY_INFO[b].short));
+function currencyLabel(c) { const i = CURRENCY_INFO[c]; return i.short + " \u2013 " + i.cur + " (" + c + " " + i.sign + ")"; }
 function fmtMoney(v) { if (!isFinite(v)) return "\u2013"; return v.toLocaleString("en-US", { maximumFractionDigits: Math.abs(v) >= 1 ? 2 : 6 }); }
 function CurrencyCalc() {
     const { useState: us, useEffect: ue } = React;
@@ -2105,10 +2367,10 @@ function CurrencyCalc() {
             " ",
             React.createElement("button", { onClick: fetchRates, style: { color: "#6c63ff", background: "none", border: "none", cursor: "pointer", fontWeight: 700 } }, "Retry")),
         value !== null && !loading && React.createElement("div", { className: "calc-result", style: resStyle },
-            React.createElement("div", { style: { fontSize: 14, color: "#555" } }, fmtMoney(amt) + " " + fi.name + " (" + from + ")"),
-            React.createElement("div", { style: { fontSize: 22, fontWeight: 800, margin: "4px 0", wordBreak: "break-word", lineHeight: 1.4 } }, "= " + fmtMoney(value) + " " + ti.name + " (" + to + ")"),
+            React.createElement("div", { style: { fontSize: 14, color: "#555" } }, fi.sign + " " + fmtMoney(amt) + " " + fi.cur + " (" + from + ") \u2013 " + fi.short),
+            React.createElement("div", { style: { fontSize: 22, fontWeight: 800, margin: "4px 0", wordBreak: "break-word", lineHeight: 1.4 } }, "= " + ti.sign + " " + fmtMoney(value) + " " + ti.cur + " (" + to + ") \u2013 " + ti.short),
             React.createElement("div", { style: { fontSize: 13, color: "#666" } }, "1 " + from + " = " + fmtMoney(rate) + " " + to),
-            React.createElement("div", { style: { fontSize: 12, color: "#888", marginTop: 4 } }, fi.country.split(" (")[0] + " \u2192 " + ti.country.split(" (")[0])),
+            React.createElement("div", { style: { fontSize: 12, color: "#888", marginTop: 4 } }, fi.name + " \u2192 " + ti.name)),
         React.createElement("details", { style: { marginTop: 16 } },
             React.createElement("summary", { style: { cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#6c63ff" } }, "What do these currency signs mean?"),
             React.createElement("div", { style: { marginTop: 8 } },
@@ -2119,7 +2381,7 @@ function CurrencyCalc() {
         
 React.createElement(InfoPanel, { what: "A currency converter tells you how much one currency is worth in another. Exchange rates constantly change based on global trade, inflation, interest rates, and geopolitical events. The rates shown here are mid-market rates (the midpoint between buy and sell prices) fetched live from exchangerate-api.com.", formula: "Converted Amount = Original Amount x Exchange Rate •  • Example: If 1 USD = 1,600 NGN • Then 50 USD = 50 x 1,600 = 80,000 NGN", example: "Convert 100 USD to NGN: •  • Live rate: 1 USD = 1,620 NGN • 100 x 1,620 = 162,000 NGN •  • Note: your bank or money transfer service may charge a fee or use a slightly different rate.", faqs: [{ q: "Why is the rate different from my bank?", a: "Banks and exchange bureaus add a markup (spread) on top of the mid-market rate shown here. The difference is their profit margin." }, { q: "How often do exchange rates change?", a: "Rates fluctuate every second during trading hours. This converter fetches rates each time you change the base currency." }, { q: "What is NGN?", a: "NGN is the ISO code for the Nigerian Naira. Most currencies use 3-letter ISO 4217 codes (USD = US Dollar, GBP = British Pound, EUR = Euro, etc.)." }] }));
 }
-function CalorieCalc() { const [age, setAge] = useState(""); const [w, setW] = useState(""); const [h, setH] = useState(""); const [sex, setSex] = useState("male"); const [act, setAct] = useState("1.2"); const [res, setRes] = useState(null); const calc = () => { let bmr = sex === "male" ? 10 * parseFloat(w) + 6.25 * parseFloat(h) - 5 * parseFloat(age) + 5 : 10 * parseFloat(w) + 6.25 * parseFloat(h) - 5 * parseFloat(age) - 161; setRes(Math.round(bmr * parseFloat(act))); }; return React.createElement("div", null,
+function CalorieCalc() { const [age, setAge] = useState(""); const [w, setW] = useState(""); const [h, setH] = useState(""); const [sex, setSex] = useState("male"); const [act, setAct] = useState("1.2"); const [res, setRes] = useState(null); const [err, setErr] = useState(""); const calc = () => { const av = parseFloat(age), wv = parseFloat(w), hv = parseFloat(h); if (!(av > 0 && av <= 120)) { setErr("Enter your age in years."); setRes(null); return; } if (!(wv > 0 && wv < 700)) { setErr("Enter your weight in kg (greater than 0)."); setRes(null); return; } if (!(hv >= 30 && hv <= 272)) { setErr("Enter your height in cm, between 30 and 272."); setRes(null); return; } setErr(""); let bmr = sex === "male" ? 10 * parseFloat(w) + 6.25 * parseFloat(h) - 5 * parseFloat(age) + 5 : 10 * parseFloat(w) + 6.25 * parseFloat(h) - 5 * parseFloat(age) - 161; setRes(Math.round(bmr * parseFloat(act))); }; return React.createElement("div", null,
     React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83E\uDD57 Calorie Calculator"),
     React.createElement(Field, { label: "Age" },
         React.createElement("input", { type: "number", value: age, onChange: e => setAge(e.target.value), placeholder: "e.g. 25", style: iStyle })),
@@ -2143,8 +2405,9 @@ function CalorieCalc() { const [age, setAge] = useState(""); const [w, setW] = u
         React.createElement("strong", null,
             res,
             " kcal")),
+    err && React.createElement(ErrBox, { text: err }),
     React.createElement(InfoPanel, { what: "A calorie calculator estimates your Total Daily Energy Expenditure (TDEE) -- the number of calories you need each day to maintain your current weight. It uses the Mifflin-St Jeor BMR formula multiplied by an activity factor.", formula: "Male BMR = 10W + 6.25H − 5A + 5 • Female BMR = 10W + 6.25H − 5A − 161 •  • W=weight(kg), H=height(cm), A=age • TDEE = BMR x Activity Factor", example: "Male, 25 years, 70kg, 175cm, Moderate activity: •  • BMR = 10(70) + 6.25(175) − 5(25) + 5 • = 700 + 1093.75 − 125 + 5 = 1673.75 • TDEE = 1673.75 x 1.55 = 2,594 kcal/day", faqs: [{ q: "To lose weight, how many calories should I eat?", a: "Eat 300-500 kcal below your TDEE per day for gradual, healthy weight loss (about 0.3-0.5 kg per week). Avoid dropping below 1,200 kcal (women) or 1,500 kcal (men)." }, { q: "What is the difference between a calorie and a kilocalorie?", a: "In everyday food labelling, 'calories' actually means kilocalories (kcal). So '2,000 calories' = 2,000 kcal. They are the same thing in nutrition contexts." }] })); }
-function WaterCalc() { const [w, setW] = useState(""); const [act, setAct] = useState("low"); const [res, setRes] = useState(null); const calc = () => { let b = parseFloat(w) * 0.033; if (act === "moderate")
+function WaterCalc() { const [w, setW] = useState(""); const [act, setAct] = useState("low"); const [res, setRes] = useState(null); const [err, setErr] = useState(""); const calc = () => { if (!(parseFloat(w) > 0 && parseFloat(w) < 700)) { setErr("Enter your weight in kg (greater than 0)."); setRes(null); return; } setErr(""); let b = parseFloat(w) * 0.033; if (act === "moderate")
     b += 0.5; if (act === "high")
     b += 1.0; setRes(b.toFixed(1)); }; return React.createElement("div", null,
     React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83D\uDCA7 Water Intake Calculator"),
@@ -2161,7 +2424,8 @@ function WaterCalc() { const [w, setW] = useState(""); const [act, setAct] = use
         React.createElement("strong", null,
             res,
             " liters/day")),
-    React.createElement(InfoPanel, { what: "Your body is about 60% water. Drinking enough daily prevents dehydration, supports kidney function, improves concentration, and helps regulate body temperature. Water needs vary by weight, activity level, climate, and health.", formula: "Base intake = Body weight (kg) x 0.033 litres • Add 0.5L for moderate activity • Add 1.0L for high activity", example: "70 kg person, moderate activity: •  • Base = 70 x 0.033 = 2.31 L • + 0.5 L (moderate) = 2.81 L/day • ~ about 9-10 glasses per day", faqs: [{ q: "Does coffee count toward daily water intake?", a: "Partly. Coffee has a mild diuretic effect but still contributes to hydration. About 80% of its volume counts. Water, herbal tea, and fruit juice count fully." }, { q: "Can you drink too much water?", a: "Yes -- overhydration (hyponatremia) is rare but real. It dilutes sodium in the blood and can be dangerous. Stick to the recommended range unless your doctor advises otherwise." }] })); }
+    err && React.createElement(ErrBox, { text: err }),
+    React.createElement(InfoPanel, { what: "Your body is about 60% water. Drinking enough daily prevents dehydration, supports kidney function, improves concentration, and helps regulate body temperature. Water needs vary by weight, activity level, climate, and health.", formula: "Base intake = Body weight (kg) x 0.033 litres • Add 0.5L for moderate activity • Add 1.0L for high activity", example: "70 kg person, moderate activity: •  • Base = 70 x 0.033 = 2.31 L • + 0.5 L (moderate) = 2.81 L/day • ~ about 11 glasses (250 ml each) per day", faqs: [{ q: "Does coffee count toward daily water intake?", a: "Partly. Coffee has a mild diuretic effect but still contributes to hydration. About 80% of its volume counts. Water, herbal tea, and fruit juice count fully." }, { q: "Can you drink too much water?", a: "Yes -- overhydration (hyponatremia) is rare but real. It dilutes sodium in the blood and can be dangerous. Stick to the recommended range unless your doctor advises otherwise." }] })); }
 function OvulationCalc() { const [lp, setLp] = useState(""); const [cl, setCl] = useState("28"); const [res, setRes] = useState(null); const [err, setErr] = useState(""); const calc = () => { const last = parseLocalDate(lp); const cycle = parseInt(cl); const dErr = checkLastDate(last, 365); if (dErr) { setErr(dErr); setRes(null); return; } if (!(cycle >= 20 && cycle <= 45)) { setErr("Enter your cycle length in days, between 20 and 45. If it changes from month to month, use the average of your last 3 cycles."); setRes(null); return; } setErr(""); const ov = new Date(last); ov.setDate(ov.getDate() + cycle - 14); const fs = new Date(ov); fs.setDate(fs.getDate() - 5); const fe = new Date(ov); fe.setDate(fe.getDate() + 1); const np = new Date(last); np.setDate(np.getDate() + cycle); const fmt = d => d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }); setRes({ ov: fmt(ov), fs: fmt(fs), fe: fmt(fe), np: fmt(np) }); }; return React.createElement("div", null,
     React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83C\uDF38 Ovulation Calculator"),
     React.createElement(Field, { label: "First Day of Last Period" },
@@ -2212,7 +2476,7 @@ function MenstrualCalc() { const [lp, setLp] = useState(""); const [cl, setCl] =
     err && React.createElement(ErrBox, { text: err }),
     React.createElement(NoticeBox, { text: "Predictions assume a regular cycle. If your cycle changes a lot, is shorter than 21 days or longer than 35, or your periods stop, speak to a doctor. Your dates are calculated on your phone and are never sent to a server." }),
     React.createElement(InfoPanel, { what: "A period tracker predicts your future menstrual cycles based on your last period date and average cycle length. Knowing your cycle helps with planning, health monitoring, recognising irregularities, and understanding your body's patterns.", formula: "Next Period Start = Last Period + (Cycle Length x n)\nPeriod End = Period Start + Duration − 1\n\nWhere n = 1, 2, 3... for future cycles", example: "Last period: Jan 1, Cycle: 28 days, Duration: 5 days\n\nPeriod 1: Jan 29 - Feb 2\nPeriod 2: Feb 26 - Mar 2\nPeriod 3: Mar 26 - Mar 30\nPeriod 4: Apr 23 - Apr 27", faqs: [{ q: "What is a normal cycle length?", a: "A typical menstrual cycle is 21 to 35 days, with 28 days being the commonly cited average. Any cycle consistently within this range is considered normal." }, { q: "What counts as an irregular period?", a: "Cycles shorter than 21 days or longer than 35 days, varying by more than 7-9 days each cycle, or periods that suddenly change pattern may be considered irregular. Consult a doctor if concerned." }, { q: "Does this tracker replace a medical app?", a: "This is a simple prediction tool. For detailed health tracking, fertility planning, or medical concerns, use a dedicated app like Clue or Flo, or consult a gynaecologist." }] })); }
-function IdealWeightCalc() { const [h, setH] = useState(""); const [sex, setSex] = useState("male"); const [res, setRes] = useState(null); const calc = () => { const base = sex === "male" ? 50 : 45.5; const ideal = base + 0.9 * (parseFloat(h) - 152); setRes({ ideal: ideal.toFixed(1), low: (ideal * 0.9).toFixed(1), high: (ideal * 1.1).toFixed(1) }); }; return React.createElement("div", null,
+function IdealWeightCalc() { const [h, setH] = useState(""); const [sex, setSex] = useState("male"); const [res, setRes] = useState(null); const [err, setErr] = useState(""); const calc = () => { const hv = parseFloat(h); if (!(hv >= 140 && hv <= 250)) { setErr("This formula is for adult heights between 140 and 250 cm."); setRes(null); return; } setErr(""); const base = sex === "male" ? 50 : 45.5; const ideal = base + 0.9 * (parseFloat(h) - 152); setRes({ ideal: ideal.toFixed(1), low: (ideal * 0.9).toFixed(1), high: (ideal * 1.1).toFixed(1) }); }; return React.createElement("div", null,
     React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\u2695\uFE0F Ideal Weight Calculator"),
     React.createElement(Field, { label: "Sex" },
         React.createElement("select", { value: sex, onChange: e => setSex(e.target.value), style: iStyle },
@@ -2233,6 +2497,7 @@ function IdealWeightCalc() { const [h, setH] = useState(""); const [sex, setSex]
             " - ",
             res.high,
             " kg")),
+    err && React.createElement(ErrBox, { text: err }),
     React.createElement(InfoPanel, { what: "The Ideal Weight Calculator uses the Devine formula to estimate a healthy target weight based on your height and sex. It gives you a single ideal weight and a \u00B110% healthy range. Remember -- this is a guide, not a strict target. Muscle mass, bone density and body type all affect what is healthy for you.", formula: "Male: Ideal = 50 + 0.9 x (height in cm − 152)\nFemale: Ideal = 45.5 + 0.9 x (height in cm − 152)\n\nHealthy range = Ideal weight ± 10%", example: "Female, 165 cm tall:\n\nIdeal = 45.5 + 0.9 x (165 − 152)\n= 45.5 + 0.9 x 13\n= 45.5 + 11.7\n= 57.2 kg\n\nHealthy range: 51.5 - 62.9 kg", faqs: [{ q: "Is ideal weight the same as healthy weight?", a: "They are related but not identical. Ideal weight gives one target number. Healthy weight is a range based on BMI 18.5-24.9. Both are useful guides, not strict rules." }, { q: "What if I am very muscular?", a: "Muscle weighs more than fat. A muscular person may be above the ideal weight formula but still be very healthy. In that case, body fat percentage is a better measure than weight alone." }, { q: "Why does sex affect ideal weight?", a: "Men and women have different average bone density and muscle mass at the same height. Men typically have more lean muscle, which weighs more, hence a higher ideal weight at the same height." }] })); }
 function BodyFatCalc() {
     const [neck, setNeck] = useState("");
@@ -2240,11 +2505,11 @@ function BodyFatCalc() {
     const [h, setH] = useState("");
     const [sex, setSex] = useState("male");
     const [hip, setHip] = useState("");
-    const [res, setRes] = useState(null);
-    const calc = () => { let bf; if (sex === "male")
+    const [res, setRes] = useState(null); const [err, setErr] = useState("");
+    const calc = () => { const nk = parseFloat(neck), ws = parseFloat(waist), ht = parseFloat(h), hp = parseFloat(hip); if (!(nk > 0 && ws > 0 && ht > 0)) { setErr("Enter your neck, waist and height in cm."); setRes(null); return; } if (sex === "female" && !(hp > 0)) { setErr("Enter your hip measurement in cm."); setRes(null); return; } if (sex === "male" && !(ws > nk)) { setErr("Your waist must be larger than your neck. Check your measurements (cm)."); setRes(null); return; } if (sex === "female" && !(ws + hp > nk)) { setErr("Check your measurements (cm)."); setRes(null); return; } setErr(""); let bf; if (sex === "male")
         bf = 495 / (1.0324 - 0.19077 * Math.log10(parseFloat(waist) - parseFloat(neck)) + 0.15456 * Math.log10(parseFloat(h))) - 450;
     else
-        bf = 495 / (1.29579 - 0.35004 * Math.log10(parseFloat(waist) + parseFloat(hip) - parseFloat(neck)) + 0.22100 * Math.log10(parseFloat(h))) - 450; setRes(bf.toFixed(1)); };
+        bf = 495 / (1.29579 - 0.35004 * Math.log10(parseFloat(waist) + parseFloat(hip) - parseFloat(neck)) + 0.22100 * Math.log10(parseFloat(h))) - 450; if (!isFinite(bf) || bf < 0 || bf > 70) { setErr("These measurements don't give a sensible result. Check them (all in cm)."); setRes(null); return; } setRes(bf.toFixed(1)); };
     return React.createElement("div", null,
         React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83C\uDFC3 Body Fat Calculator"),
         React.createElement(Field, { label: "Sex" },
@@ -2265,7 +2530,8 @@ function BodyFatCalc() {
             React.createElement("strong", null,
                 res,
                 "%")),
-        React.createElement(InfoPanel, { what: "This tool uses the U.S. Navy body fat method, which estimates body fat percentage from simple tape-measure measurements instead of expensive equipment like DEXA scans or calipers. It's less precise than clinical methods but a reliable, free way to track changes over time.", formula: "Men: %BF = 495 / (1.0324 - 0.19077×log10(waist-neck) + 0.15456×log10(height)) - 450 •  • Women: %BF = 495 / (1.29579 - 0.35004×log10(waist+hip-neck) + 0.22100×log10(height)) - 450", example: "Male, neck 38cm, waist 80cm, height 175cm: •  • waist - neck = 42 •  • %BF = 495/(1.0324 - 0.19077×log10(42) + 0.15456×log10(175)) - 450 •  • Result ≈ 15.2%", faqs: [{ q: "How accurate is this method?", a: "The Navy method is typically within 3-4% of clinical DEXA scan results for most body types -- accurate enough for tracking progress, not for medical diagnosis." }, { q: "Why do men and women use different formulas?", a: "Body fat distribution differs by sex -- women naturally carry more essential fat, so the formula includes hip measurement for women to account for this." }, { q: "What's a healthy body fat percentage?", a: "Generally 10-20% for men and 18-28% for women is considered healthy, though this varies with age and fitness goals. Consult a health professional for personalized advice." }] }));
+        err && React.createElement(ErrBox, { text: err }),
+    React.createElement(InfoPanel, { what: "This tool uses the U.S. Navy body fat method, which estimates body fat percentage from simple tape-measure measurements instead of expensive equipment like DEXA scans or calipers. It's less precise than clinical methods but a reliable, free way to track changes over time.", formula: "Men: %BF = 495 / (1.0324 - 0.19077×log10(waist-neck) + 0.15456×log10(height)) - 450 •  • Women: %BF = 495 / (1.29579 - 0.35004×log10(waist+hip-neck) + 0.22100×log10(height)) - 450", example: "Male, neck 38cm, waist 80cm, height 175cm: •  • waist - neck = 42 •  • %BF = 495/(1.0324 - 0.19077×log10(42) + 0.15456×log10(175)) - 450 •  • Result ≈ 12.9%", faqs: [{ q: "How accurate is this method?", a: "The Navy method is typically within 3-4% of clinical DEXA scan results for most body types -- accurate enough for tracking progress, not for medical diagnosis." }, { q: "Why do men and women use different formulas?", a: "Body fat distribution differs by sex -- women naturally carry more essential fat, so the formula includes hip measurement for women to account for this." }, { q: "What's a healthy body fat percentage?", a: "Generally 10-20% for men and 18-28% for women is considered healthy, though this varies with age and fitness goals. Consult a health professional for personalized advice." }] }));
 }
 function PregnancyCalc() {
     const [lmp, setLmp] = useState("");
@@ -2315,7 +2581,7 @@ function PregnancyCalc() {
                     { label: "Week 12 -- End of 1st trimester", date: res.m2 },
                     { label: "Week 20 -- Anatomy scan / gender reveal", date: res.m3 },
                     { label: "Week 28 -- Start of 3rd trimester", date: res.m4 },
-                    { label: "Week 36 -- Baby considered full-term soon", date: res.m5 },
+                    { label: "Week 36 -- Nearly at term (early term starts at week 37)", date: res.m5 },
                 ].map((m, i) => React.createElement("div", { key: i, style: { padding: "8px 12px", borderRadius: 10, background: "rgba(108,99,255,0.07)", marginBottom: 6, fontSize: 13 } },
                     React.createElement("strong", null, m.label),
                     React.createElement("br", null),
@@ -2506,108 +2772,47 @@ function MatrixCalc() {
     const [B, setB] = useState(Array(9).fill(""));
     const [res, setRes] = useState(null);
     const [err, setErr] = useState("");
-    const getMat = (arr) => { const n = size, m = []; for (let i = 0; i < n; i++)
-        m.push(arr.slice(i * n, i * n + n).map(v => parseFloat(v) || 0)); return m; };
-    const det = (m) => {
-        const n = m.length;
-        if (n === 2)
-            return m[0][0] * m[1][1] - m[0][1] * m[1][0];
-        return m[0][0] * (m[1][1] * m[2][2] - m[1][2] * m[2][1]) - m[0][1] * (m[1][0] * m[2][2] - m[1][2] * m[2][0]) + m[0][2] * (m[1][0] * m[2][1] - m[1][1] * m[2][0]);
-    };
-    const inverse = (m) => {
-        const d = det(m);
-        if (d === 0)
-            throw new Error("Matrix is singular (determinant = 0) -- no inverse exists.");
-        const n = m.length;
-        if (n === 2)
-            return [[m[1][1] / d, -m[0][1] / d], [-m[1][0] / d, m[0][0] / d]];
-        const cof = (r, c) => {
-            const minor = [];
-            for (let i = 0; i < 3; i++) {
-                if (i === r)
-                    continue;
-                const row = [];
-                for (let j = 0; j < 3; j++) {
-                    if (j === c)
-                        continue;
-                    row.push(m[i][j]);
-                }
-                minor.push(row);
-            }
-            const md = minor[0][0] * minor[1][1] - minor[0][1] * minor[1][0];
-            return ((r + c) % 2 === 0 ? 1 : -1) * md;
-        };
-        const cofM = [];
-        for (let i = 0; i < 3; i++) {
-            const row = [];
-            for (let j = 0; j < 3; j++)
-                row.push(cof(i, j));
-            cofM.push(row);
-        }
-        const adj = [];
-        for (let i = 0; i < 3; i++) {
-            const row = [];
-            for (let j = 0; j < 3; j++)
-                row.push(cofM[j][i]);
-            adj.push(row);
-        }
-        return adj.map(row => row.map(v => v / d));
-    };
-    const multiply = (m1, m2) => { const n = m1.length, r = []; for (let i = 0; i < n; i++) {
-        const row = [];
-        for (let j = 0; j < n; j++) {
-            let s = 0;
-            for (let k = 0; k < n; k++)
-                s += m1[i][k] * m2[k][j];
-            row.push(s);
-        }
-        r.push(row);
-    } return r; };
-    const add = (m1, m2) => m1.map((row, i) => row.map((v, j) => v + m2[i][j]));
     const calc = () => {
         setErr("");
         setRes(null);
-        try {
-            const mA = getMat(A);
-            if (op === "det")
-                setRes({ type: "scalar", val: formatNum(det(mA)) });
-            else if (op === "inverse")
-                setRes({ type: "matrix", val: inverse(mA) });
-            else {
-                const mB = getMat(B);
-                setRes({ type: "matrix", val: op === "add" ? add(mA, mB) : multiply(mA, mB) });
-            }
-        }
-        catch (e) {
-            setErr(e.message || "Calculation error.");
-        }
+        const out = runMatrix(op, A, B, size);
+        if (out.error) { setErr(out.error); return; }
+        setRes(out);
     };
     const renderGrid = (arr, setArr, label) => (React.createElement("div", { style: { marginBottom: 12 } },
         React.createElement("div", { style: { fontSize: 13, fontWeight: 600, color: "#666", marginBottom: 6 } }, label),
-        React.createElement("div", { style: { display: "grid", gridTemplateColumns: `repeat(${size},1fr)`, gap: 6, maxWidth: size * 68 } }, Array.from({ length: size * size }).map((_, i) => (React.createElement("input", { key: i, type: "number", value: arr[i], onChange: e => { const copy = [...arr]; copy[i] = e.target.value; setArr(copy); }, style: Object.assign(Object.assign({}, iStyle), { padding: "8px", textAlign: "center", marginBottom: 0 }) }))))));
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: `repeat(${size},1fr)`, gap: 6, maxWidth: size * 68 } }, Array.from({ length: size * size }).map((_, i) => {
+            const idx = Math.floor(i / size) * 3 + (i % size);
+            return React.createElement("input", { key: i, type: "number", value: arr[idx], onChange: e => { const copy = [...arr]; copy[idx] = e.target.value; setArr(copy); }, style: Object.assign(Object.assign({}, iStyle), { padding: "8px", textAlign: "center", marginBottom: 0 }) });
+        }))));
     return React.createElement("div", null,
         React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\u25A6 Matrix Calculator"),
         React.createElement(Field, { label: "Matrix Size" },
-            React.createElement("select", { value: size, onChange: e => { setSize(parseInt(e.target.value)); setRes(null); }, style: iStyle },
+            React.createElement("select", { value: size, onChange: e => { setSize(parseInt(e.target.value)); setRes(null); setErr(""); }, style: iStyle },
                 React.createElement("option", { value: 2 }, "2 x 2"),
                 React.createElement("option", { value: 3 }, "3 x 3"))),
         React.createElement(Field, { label: "Operation" },
-            React.createElement("select", { value: op, onChange: e => { setOp(e.target.value); setRes(null); }, style: iStyle },
+            React.createElement("select", { value: op, onChange: e => { setOp(e.target.value); setRes(null); setErr(""); }, style: iStyle },
                 React.createElement("option", { value: "det" }, "Determinant"),
                 React.createElement("option", { value: "inverse" }, "Inverse"),
+                React.createElement("option", { value: "transpose" }, "Transpose"),
                 React.createElement("option", { value: "add" }, "A + B"),
+                React.createElement("option", { value: "sub" }, "A \u2212 B"),
                 React.createElement("option", { value: "multiply" }, "A x B"))),
         renderGrid(A, setA, "Matrix A"),
-        (op === "add" || op === "multiply") && renderGrid(B, setB, "Matrix B"),
+        (op === "add" || op === "sub" || op === "multiply") && renderGrid(B, setB, "Matrix B"),
         React.createElement("button", { onClick: calc, style: btnStyle }, "Calculate"),
-        err && React.createElement("div", { className: "calc-result", style: Object.assign(Object.assign({}, resStyle), { background: "#fee2e2", color: "#b91c1c" }) }, err),
-        res && res.type === "scalar" && React.createElement("div", { className: "calc-result", style: resStyle },
-            "Determinant = ",
-            React.createElement("strong", null, res.val)),
-        res && res.type === "matrix" && React.createElement("div", { className: "calc-result", style: resStyle },
-            "Result:",
-            React.createElement("div", { style: { display: "grid", gridTemplateColumns: `repeat(${size},1fr)`, gap: 6, marginTop: 8, maxWidth: size * 90 } }, res.val.flat().map((v, i) => React.createElement("div", { key: i, style: { background: "#fff", border: "1px solid #ddd", borderRadius: 6, padding: "6px", textAlign: "center" } }, formatNum(v))))),
-        React.createElement(InfoPanel, { what: "Matrices are grids of numbers used in engineering, computer graphics, economics, and science. The determinant tells you if a matrix is invertible; the inverse 'undoes' a matrix's transformation; multiplication combines two transformations.", formula: "2x2 Determinant: |A| = ad - bc • Inverse (2x2): (1/|A|) x [[d,-b],[-c,a]] • Matrix multiplication: row x column dot products", example: "A = [[2,1],[1,1]] •  • Determinant = 2(1) - 1(1) = 1 • Inverse = [[1,-1],[-1,2]]", faqs: [
+        err && React.createElement(ErrBox, { text: err }),
+        res && res.scalar !== undefined && React.createElement(ResultCard, { label: res.label, value: res.scalar, extra: res.extra }),
+        res && res.matrix && React.createElement("div", { className: "calc-result", style: resStyle },
+            React.createElement("div", { style: { fontSize: 12, fontWeight: 800, color: "#6c63ff", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 } }, res.label),
+            React.createElement("div", { style: { display: "grid", gridTemplateColumns: `repeat(${size},1fr)`, gap: 6, maxWidth: size * 96 } }, res.matrix.flat().map((v, i) => React.createElement("div", { key: i, style: { background: "#fff", border: "1px solid #ddd", borderRadius: 6, padding: "6px", textAlign: "center" } },
+                React.createElement("div", { style: { fontWeight: 700 } }, fmtFrac(v)),
+                (toFrac(v) && toFrac(v).d !== 1) && React.createElement("div", { style: { fontSize: 11, color: "#888" } }, formatNum(v))))),
+            res.extra && React.createElement("div", { style: { fontSize: 13, color: "#666", marginTop: 8, lineHeight: 1.6 } }, res.extra)),
+        res && React.createElement(StepsBox, { steps: res.steps }),
+        
+React.createElement(InfoPanel, { what: "Matrices are grids of numbers used in engineering, computer graphics, economics, and science. The determinant tells you if a matrix is invertible; the inverse 'undoes' a matrix's transformation; multiplication combines two transformations.", formula: "2x2 Determinant: |A| = ad - bc • Inverse (2x2): (1/|A|) x [[d,-b],[-c,a]] • Matrix multiplication: row x column dot products", example: "A = [[2,1],[1,1]] •  • Determinant = 2(1) - 1(1) = 1 • Inverse = [[1,-1],[-1,2]]", faqs: [
                 { q: "What if the determinant is 0?", a: "The matrix is 'singular' -- it has no inverse. This happens when the rows/columns aren't independent." },
                 { q: "Does AxB equal BxA?", a: "Not usually! Matrix multiplication is not commutative -- order matters." }
             ] }));
