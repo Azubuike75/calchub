@@ -1,7 +1,7 @@
 {
   "name": "Universal Calculator Hub",
   "short_name": "CalcHub",
-  "description": "73+ Free Calculators — Maths, Physics, Chemistry, Health, Finance. Perfect for WAEC, JAMB and university students worldwide.",
+  "description": "A Multitude of Free Calculators and Tools — Maths, Physics, Chemistry, Health, Finance. Perfect for WAEC, JAMB and university students worldwide.",
   "start_url": "/calchub/",
   "scope": "/calchub/",
   "display": "standalone",
