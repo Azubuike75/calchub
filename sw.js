@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calchub-v9'; // bump on every deploy that changes content
+const CACHE_NAME = 'calchub-v10'; // bump on every deploy that changes content
 const BASE = '/calchub/';
 
 const CORE = [

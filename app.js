@@ -1,109 +1,5 @@
 "use strict";
 const { useState, useEffect, useRef } = React;
-/* ===== CalcHub paywall (Paystack + Cloudflare Worker) ===== */
-const CH_PAY = {
-    PUBLIC_KEY: "pk_test_ef048a2e26268eef5a18725dfa5f86b81372eab8",
-    WORKER_URL: "https://calchub-pay.obioraazubuike78.workers.dev",
-    PRICE_NAIRA: 3000,
-    FREE_IDS: ["scientific", "clock", "lcmhcf"],
-    TOKEN_KEY: "calchub_token"
-};
-function chToken() { try {
-    return localStorage.getItem(CH_PAY.TOKEN_KEY) || "";
-}
-catch (e) {
-    return "";
-} }
-function ToolGate({ id, Real }) {
-    const [paid, setPaid] = useState(!!chToken());
-    const [email, setEmail] = useState("");
-    const [msg, setMsg] = useState("");
-    const [busy, setBusy] = useState(false);
-    useEffect(() => {
-        const t = chToken();
-        if (!t)
-            return;
-        fetch(CH_PAY.WORKER_URL + "/check?token=" + encodeURIComponent(t))
-            .then(r => r.json())
-            .then(d => { if (d && d.valid === false) {
-            try {
-                localStorage.removeItem(CH_PAY.TOKEN_KEY);
-            }
-            catch (e) { }
-            setPaid(false);
-        } })
-            .catch(() => { });
-    }, []);
-    if (CH_PAY.FREE_IDS.indexOf(id) !== -1 || paid)
-        return React.createElement(Real, null);
-    const finish = (ref) => {
-        setBusy(true);
-        setMsg("Confirming payment...");
-        fetch(CH_PAY.WORKER_URL + "/verify?reference=" + encodeURIComponent(ref))
-            .then(r => r.json())
-            .then(d => {
-            if (d && d.token) {
-                try {
-                    localStorage.setItem(CH_PAY.TOKEN_KEY, d.token);
-                }
-                catch (e) { }
-                setPaid(true);
-            }
-            else {
-                setMsg((d && d.error) || "Could not confirm payment.");
-            }
-            setBusy(false);
-        })
-            .catch(() => { setMsg("Network problem. Check your data and try again."); setBusy(false); });
-    };
-    const pay = () => {
-        const em = email.trim();
-        if (!/^\S+@\S+\.\S+$/.test(em)) {
-            setMsg("Enter a valid email.");
-            return;
-        }
-        setMsg("");
-        const start = () => {
-            const h = window.PaystackPop.setup({
-                key: CH_PAY.PUBLIC_KEY,
-                email: em,
-                amount: CH_PAY.PRICE_NAIRA * 100,
-                currency: "NGN",
-                ref: "CH" + Date.now() + Math.floor(Math.random() * 1000000),
-                metadata: { app: "calchub" },
-                callback: function (res) { finish(res.reference); },
-                onClose: function () { }
-            });
-            h.openIframe();
-        };
-        if (window.PaystackPop)
-            return start();
-        const s = document.createElement("script");
-        s.src = "https://js.paystack.co/v1/inline.js";
-        s.onload = start;
-        s.onerror = () => setMsg("Could not load Paystack. Check your connection.");
-        document.head.appendChild(s);
-    };
-    const restore = () => {
-        const ref = window.prompt("Enter your Paystack payment reference (it is in your receipt email):");
-        if (ref && ref.trim())
-            finish(ref.trim());
-    };
-    const box = { maxWidth: 420, margin: "24px auto", padding: 24, borderRadius: 16, border: "1px solid #6c63ff55", textAlign: "center" };
-    const inp = { width: "100%", boxSizing: "border-box", padding: 12, margin: "12px 0 10px", border: "1px solid #ccc", borderRadius: 10, fontSize: 15, background: "#fff", color: "#111" };
-    const btn = { width: "100%", padding: 13, border: "none", borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: busy ? "default" : "pointer", background: "#6c63ff", color: "#fff", opacity: busy ? 0.6 : 1 };
-    return (React.createElement("div", { style: box },
-        React.createElement("div", { style: { fontSize: 34 } }, "\uD83D\uDD12"),
-        React.createElement("h3", { style: { fontSize: 20, fontWeight: 800, margin: "8px 0" } }, "Unlock all of CalcHub"),
-        React.createElement("p", { style: { fontSize: 14, lineHeight: 1.6, opacity: 0.8 } }, "Pay once and use every calculator forever. Always free: Scientific Calculator, Digital Clock and LCM & HCF."),
-        React.createElement("input", { type: "email", value: email, placeholder: "Your email (for receipt)", onChange: e => setEmail(e.target.value), style: inp }),
-        React.createElement("button", { onClick: busy ? undefined : pay, style: btn }, "Unlock for \u20A6" + CH_PAY.PRICE_NAIRA.toLocaleString()),
-        msg && React.createElement("div", { style: { color: "#d33", fontSize: 13, marginTop: 10 } }, msg),
-        React.createElement("div", { style: { marginTop: 14, fontSize: 13, opacity: 0.8 } },
-            "Already paid? ",
-            React.createElement("span", { onClick: busy ? undefined : restore, style: { color: "#6c63ff", textDecoration: "underline", cursor: "pointer", fontWeight: 600 } }, "Restore with payment reference"))));
-}
-/* ===== end paywall ===== */
 function useAdCollapseFallback(wrapRef, smallMargin) {
     useEffect(() => {
         const wrap = wrapRef.current;
@@ -3581,7 +3477,7 @@ Free calculators for students and professionals worldwide.`
                         React.createElement("div", { style: { flex: 1, minWidth: 0 } },
                             React.createElement("div", { style: { fontWeight: 800, fontSize: 17, marginBottom: 3, letterSpacing: -0.2 } }, active.name),
                             React.createElement("div", { style: { fontSize: 12, color: sub, lineHeight: 1.4 } }, active.desc))),
-                    React.createElement("div", { className: "cwrap" }, Comp ? React.createElement(ToolGate, { id: active.id, Real: Comp }) : React.createElement("p", { style: { color: sub } }, "Coming soon!")),
+                    React.createElement("div", { className: "cwrap" }, Comp ? React.createElement(Comp, null) : React.createElement("p", { style: { color: sub } }, "Coming soon!")),
                     React.createElement(AdSlot, null),
                     React.createElement(AdUnit, { slot: "1111111111", key: active.id }),
                     related.length > 0 && (React.createElement("div", { style: { marginTop: 22 } },
