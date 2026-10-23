@@ -135,12 +135,6 @@ const tools = {
         { id: "brick", name: "Brick Calculator", icon: "🧱", desc: "Estimate bricks needed for a wall." },
         { id: "roofarea", name: "Roof Area Calculator", icon: "🏠", desc: "Calculate roof surface area from footprint and pitch." },
     ],
-    crypto: [
-        { id: "cryptopl", name: "Crypto Profit/Loss Calculator", icon: "🪙", desc: "Calculate profit or loss on a crypto trade." },
-        { id: "dca", name: "Dollar Cost Averaging (DCA)", icon: "📉", desc: "Estimate coins acquired from regular investing." },
-        { id: "staking", name: "Staking Rewards Calculator", icon: "🔒", desc: "Estimate staking rewards over time." },
-        { id: "miningprofit", name: "Mining Profitability Calculator", icon: "⛏️", desc: "Estimate daily and monthly mining profit." },
-    ],
 };
 const allTools = Object.values(tools).flat();
 const iStyle = { width: "100%", padding: "10px 14px", border: "1.5px solid #e8e8f0", borderRadius: 10, fontSize: 15, outline: "none", marginBottom: 4, background: "white" };
@@ -3062,95 +3056,6 @@ function RoofAreaCalc() { const [l, setL] = useState(""); const [w, setW] = useS
             res.area,
             " m\u00B2")),
     React.createElement(InfoPanel, { what: "A sloped roof always has more surface area than the building's flat footprint -- the steeper the pitch, the bigger the difference. This matters for ordering the right amount of roofing sheets, tiles or shingles.", formula: "Roof Area = Footprint Area / cos(Pitch in degrees)\nFootprint Area = Building Length x Building Width", example: "Building: 10m x 8m, Pitch: 25°\n\nFootprint = 10 x 8 = 80 m²\nRoof Area = 80 / cos(25°) = 80 / 0.9063 = 88.28 m²", faqs: [{ q: "What is roof pitch?", a: "Roof pitch is the angle of the roof slope measured in degrees (or sometimes as a ratio like 4:12). A flat roof is 0°; steep residential roofs are often 20-40°." }, { q: "Why does a steeper pitch need more material?", a: "As pitch increases, the sloped surface stretches further than the flat footprint below it -- at 45° the roof area is already about 41% larger than the footprint." }] })); }
-function CryptoPLCalc() { const [buy, setBuy] = useState(""); const [sell, setSell] = useState(""); const [qty, setQty] = useState(""); const [fee, setFee] = useState("0"); const [res, setRes] = useState(null); const calc = () => { const b = parseFloat(buy), s = parseFloat(sell), q = parseFloat(qty), f = parseFloat(fee) / 100; const gross = (s - b) * q; const feeAmt = (b * q + s * q) * f; const net = gross - feeAmt; setRes({ gross: gross.toFixed(2), fee: feeAmt.toFixed(2), net: net.toFixed(2), pct: (((s - b) / b) * 100).toFixed(2) }); }; return React.createElement("div", null,
-    React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83E\uDE99 Crypto Profit/Loss Calculator"),
-    React.createElement(Field, { label: "Buy Price ($)" },
-        React.createElement("input", { type: "number", value: buy, onChange: e => setBuy(e.target.value), placeholder: "e.g. 30000", style: iStyle })),
-    React.createElement(Field, { label: "Sell Price ($)" },
-        React.createElement("input", { type: "number", value: sell, onChange: e => setSell(e.target.value), placeholder: "e.g. 45000", style: iStyle })),
-    React.createElement(Field, { label: "Quantity" },
-        React.createElement("input", { type: "number", value: qty, onChange: e => setQty(e.target.value), placeholder: "e.g. 0.5", style: iStyle })),
-    React.createElement(Field, { label: "Total Trading Fees (%)" },
-        React.createElement("input", { type: "number", value: fee, onChange: e => setFee(e.target.value), placeholder: "e.g. 0.2", style: iStyle })),
-    React.createElement("button", { onClick: calc, style: btnStyle }, "Calculate"),
-    res && React.createElement("div", { className: "calc-result", style: resStyle },
-        "Gross P/L: ",
-        React.createElement("strong", null,
-            "$",
-            res.gross),
-        " (",
-        res.pct,
-        "%)",
-        React.createElement("br", null),
-        "Fees: ",
-        React.createElement("strong", null,
-            "-$",
-            res.fee),
-        React.createElement("br", null),
-        "Net P/L: ",
-        React.createElement("strong", null,
-            "$",
-            res.net)),
-    React.createElement(InfoPanel, { what: "This calculator finds your realised profit or loss on a crypto trade -- including exchange fees charged on both the buy and sell side, which many traders forget to account for.", formula: "Gross P/L = (Sell Price − Buy Price) x Quantity\nFees ≈ (Buy Value + Sell Value) x Fee%\nNet P/L = Gross P/L − Fees", example: "Bought 0.5 BTC at $30,000, sold at $45,000, 0.2% fee\n\nGross P/L = (45,000 − 30,000) x 0.5 = $7,500\nFees ≈ (15,000 + 22,500) x 0.002 = $75\nNet P/L = 7,500 − 75 = $7,425", faqs: [{ q: "Why does gross P/L not match what actually lands in my account?", a: "Exchange fees are charged on both the entry and exit trade, and can add up more than expected on frequent trading -- always check net P/L, not just gross." }, { q: "Does this account for tax?", a: "No. Capital gains tax rules on crypto vary widely by country, so this only shows your trading result before any tax obligation." }] })); }
-function DCACalc() { const [amt, setAmt] = useState(""); const [periods, setPeriods] = useState(""); const [avgPrice, setAvgPrice] = useState(""); const [res, setRes] = useState(null); const calc = () => { const a = parseFloat(amt), p = parseFloat(periods), avg = parseFloat(avgPrice); const invested = a * p; const coins = invested / avg; setRes({ invested: invested.toFixed(2), coins: coins.toFixed(6) }); }; return React.createElement("div", null,
-    React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83D\uDCC9 Dollar Cost Averaging (DCA) Calculator"),
-    React.createElement(Field, { label: "Investment per Period ($)" },
-        React.createElement("input", { type: "number", value: amt, onChange: e => setAmt(e.target.value), placeholder: "e.g. 100", style: iStyle })),
-    React.createElement(Field, { label: "Number of Periods" },
-        React.createElement("input", { type: "number", value: periods, onChange: e => setPeriods(e.target.value), placeholder: "e.g. 12", style: iStyle })),
-    React.createElement(Field, { label: "Average Price per Coin ($)" },
-        React.createElement("input", { type: "number", value: avgPrice, onChange: e => setAvgPrice(e.target.value), placeholder: "e.g. 40000", style: iStyle })),
-    React.createElement("button", { onClick: calc, style: btnStyle }, "Calculate"),
-    res && React.createElement("div", { className: "calc-result", style: resStyle },
-        "Total Invested: ",
-        React.createElement("strong", null,
-            "$",
-            res.invested),
-        React.createElement("br", null),
-        "Coins Acquired: ",
-        React.createElement("strong", null, res.coins)),
-    React.createElement(InfoPanel, { what: "Dollar Cost Averaging means investing a fixed amount at regular intervals regardless of price, rather than trying to time the market with a single lump sum. This estimator shows the outcome if your purchases average out to a given price per coin.", formula: "Total Invested = Amount per Period x Number of Periods\nCoins Acquired = Total Invested / Average Price per Coin", example: "$100/month for 12 months, average price $40,000\n\nTotal Invested = 100 x 12 = $1,200\nCoins Acquired = 1,200 / 40,000 = 0.03 coins", faqs: [{ q: "Where does the 'average price' come from in real DCA?", a: "In practice it's the average of the actual price you paid at each purchase date, which you'd track from your own buy history. This calculator lets you test a hypothetical average to estimate the outcome." }, { q: "Why do people prefer DCA over lump-sum investing?", a: "DCA spreads out the risk of buying at a bad time -- you buy more coins when price is low and fewer when price is high, smoothing out volatility, though lump-sum historically outperforms on average in rising markets." }] })); }
-function StakingCalc() { const [amt, setAmt] = useState(""); const [apy, setApy] = useState(""); const [days, setDays] = useState(""); const [res, setRes] = useState(null); const calc = () => { const a = parseFloat(amt), r = parseFloat(apy) / 100, d = parseFloat(days); const rewards = a * r * (d / 365); setRes({ rewards: rewards.toFixed(4), total: (a + rewards).toFixed(4) }); }; return React.createElement("div", null,
-    React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\uD83D\uDD12 Staking Rewards Calculator"),
-    React.createElement(Field, { label: "Amount Staked" },
-        React.createElement("input", { type: "number", value: amt, onChange: e => setAmt(e.target.value), placeholder: "e.g. 1000", style: iStyle })),
-    React.createElement(Field, { label: "APY (%)" },
-        React.createElement("input", { type: "number", value: apy, onChange: e => setApy(e.target.value), placeholder: "e.g. 5", style: iStyle })),
-    React.createElement(Field, { label: "Staking Duration (days)" },
-        React.createElement("input", { type: "number", value: days, onChange: e => setDays(e.target.value), placeholder: "e.g. 90", style: iStyle })),
-    React.createElement("button", { onClick: calc, style: btnStyle }, "Calculate Rewards"),
-    res && React.createElement("div", { className: "calc-result", style: resStyle },
-        "Rewards Earned: ",
-        React.createElement("strong", null, res.rewards),
-        React.createElement("br", null),
-        "Total After Staking: ",
-        React.createElement("strong", null, res.total)),
-    React.createElement(InfoPanel, { what: "Staking lets you earn rewards for locking up crypto to help secure a proof-of-stake network. The annual percentage yield (APY) tells you the yearly rate, which this calculator prorates down to your actual staking duration.", formula: "Rewards = Amount Staked x APY x (Days / 365)\nTotal = Amount Staked + Rewards", example: "1,000 tokens staked at 5% APY for 90 days\n\nRewards = 1,000 x 0.05 x (90/365)\n= 1,000 x 0.05 x 0.2466\n= 12.33 tokens", faqs: [{ q: "Does this account for compounding?", a: "No -- this is simple (non-compounding) staking, where rewards are calculated only on your original stake. Some platforms auto-compound rewards, which grows your balance faster than this estimate." }, { q: "Why does my actual APY sometimes change during staking?", a: "Many networks adjust APY based on total amount staked network-wide, validator performance, or protocol rules -- the rate you see today may not hold for your entire staking period." }] })); }
-function MiningProfitCalc() { const [output, setOutput] = useState(""); const [price, setPrice] = useState(""); const [power, setPower] = useState(""); const [res, setRes] = useState(null); const calc = () => { const o = parseFloat(output), p = parseFloat(price), pw = parseFloat(power); const dailyRev = o * p; const dailyProfit = dailyRev - pw; setRes({ dailyRev: dailyRev.toFixed(2), dailyProfit: dailyProfit.toFixed(2), monthly: (dailyProfit * 30).toFixed(2) }); }; return React.createElement("div", null,
-    React.createElement("h3", { style: { fontSize: 20, fontWeight: 700, marginBottom: 16 } }, "\u26CF\uFE0F Mining Profitability Calculator"),
-    React.createElement(Field, { label: "Coin Output per Day" },
-        React.createElement("input", { type: "number", value: output, onChange: e => setOutput(e.target.value), placeholder: "e.g. 0.0005", style: iStyle })),
-    React.createElement(Field, { label: "Coin Price ($)" },
-        React.createElement("input", { type: "number", value: price, onChange: e => setPrice(e.target.value), placeholder: "e.g. 45000", style: iStyle })),
-    React.createElement(Field, { label: "Electricity Cost per Day ($)" },
-        React.createElement("input", { type: "number", value: power, onChange: e => setPower(e.target.value), placeholder: "e.g. 8", style: iStyle })),
-    React.createElement("button", { onClick: calc, style: btnStyle }, "Calculate Profitability"),
-    res && React.createElement("div", { className: "calc-result", style: resStyle },
-        "Daily Revenue: ",
-        React.createElement("strong", null,
-            "$",
-            res.dailyRev),
-        React.createElement("br", null),
-        "Daily Profit: ",
-        React.createElement("strong", null,
-            "$",
-            res.dailyProfit),
-        React.createElement("br", null),
-        "Monthly Profit: ",
-        React.createElement("strong", null,
-            "$",
-            res.monthly)),
-    React.createElement(InfoPanel, { what: "Mining profitability compares the value of the coins your hardware produces each day against the electricity cost of running it. Hardware wear-and-tear and pool fees aren't included here, so treat this as a before-overhead estimate.", formula: "Daily Revenue = Coin Output per Day x Coin Price\nDaily Profit = Daily Revenue − Daily Electricity Cost\nMonthly Profit = Daily Profit x 30", example: "Output: 0.0005 coins/day | Price: $45,000 | Power: $8/day\n\nDaily Revenue = 0.0005 x 45,000 = $22.50\nDaily Profit = 22.50 − 8 = $14.50\nMonthly Profit = 14.50 x 30 = $435", faqs: [{ q: "Why isn't my hardware cost included?", a: "Hardware is a one-time upfront cost (or depreciates over months/years), separate from the daily running cost this calculator focuses on. Divide your hardware cost by expected daily profit to estimate payback period." }, { q: "Why does mining profitability change so often?", a: "Coin price, network difficulty (which affects your coin output) and electricity rates all shift regularly -- a setup that's profitable today can become unprofitable if difficulty rises or price drops." }] })); }
 const components = {
     quadratic: QuadraticCalc, pythagoras: PythagorasCalc, statistics: StatisticsCalc, fraction: FractionCalc,
     prime: PrimeCalc, lcmhcf: LCMHCFCalc, scientific: ScientificCalc, percentage: PercentageCalc,
@@ -3168,7 +3073,6 @@ const components = {
     derivative: DerivativeCalc, integral: IntegralCalc, limit: LimitCalc, matrix: MatrixCalc,
     profitloss: ProfitLossCalc, breakeven: BreakEvenCalc, vat: VATCalc, markupmargin: MarkupMarginCalc, invoice: InvoiceCalc, cagr: CAGRCalc,
     concrete: ConcreteCalc, paintcoverage: PaintCoverageCalc, flooring: FlooringCalc, brick: BrickCalc, roofarea: RoofAreaCalc,
-    cryptopl: CryptoPLCalc, dca: DCACalc, staking: StakingCalc, miningprofit: MiningProfitCalc,
 };
 function AdSlot() {
     const wrapRef = useRef(null);
@@ -3207,7 +3111,7 @@ function App() {
     catch (e) { } }, [favorites]);
     const toggleFavorite = (id) => { setFavorites(prev => prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]); };
     const isFavorite = (id) => favorites.includes(id);
-    const NEW_TOOL_IDS = ["derivative", "integral", "limit", "matrix", "profitloss", "breakeven", "vat", "markupmargin", "invoice", "cagr", "concrete", "paintcoverage", "flooring", "brick", "roofarea", "cryptopl", "dca", "staking", "miningprofit"];
+    const NEW_TOOL_IDS = ["derivative", "integral", "limit", "matrix", "profitloss", "breakeven", "vat", "markupmargin", "invoice", "cagr", "concrete", "paintcoverage", "flooring", "brick", "roofarea"];
     const copyResult = () => {
         const el = document.querySelector('.calc-result');
         if (el) {
@@ -3350,7 +3254,6 @@ Free calculators for students and professionals worldwide.`
         { label: "🕐 Clocks", key: "clocks", color: "#4338ca", grad: "linear-gradient(135deg,#4338ca,#3730a3)", light: "#eef2ff" },
         { label: "🏢 Business", key: "business", color: "#0f766e", grad: "linear-gradient(135deg,#0f766e,#115e59)", light: "#f0fdfa" },
         { label: "🧱 Construction", key: "construction", color: "#92400e", grad: "linear-gradient(135deg,#92400e,#78350f)", light: "#fffbeb" },
-        { label: "🪙 Crypto", key: "crypto", color: "#ca8a04", grad: "linear-gradient(135deg,#ca8a04,#a16207)", light: "#fefce8" },
     ];
     const displayedCats = activeCat ? cats.filter(c => c.key === activeCat) : cats;
     return (React.createElement("div", { style: { minHeight: "100vh", background: bg, color: text, fontFamily: "'Segoe UI',Inter,system-ui,sans-serif", transition: "background 0.25s,color 0.25s" } },
